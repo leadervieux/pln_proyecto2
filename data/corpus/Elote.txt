@@ -1,0 +1,6 @@
+Elote
+Base para los esquites
+Tortilla
+Fruto que crece de una milpa, con granos, color como amarillo y blanco
+De donde vienen los esquites. Que le echan mayonesa o lo asan.
+Alimento típico para la elaboración de comida mexicana.

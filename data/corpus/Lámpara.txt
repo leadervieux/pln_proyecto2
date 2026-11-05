@@ -1,0 +1,6 @@
+Lámpara
+sirve para iluminar un espacio, lleva un foco
+Objeto que se necesita para que haya luz de noche.
+aparato eléctrico usado para alumbrar lugares
+objeto que da luz por la noche
+objeto que ilumina algún cuarto
