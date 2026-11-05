@@ -1,11 +1,12 @@
 # pln_proyecto2
 
-'''bash
-echo "# pln_proyecto2" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/leadervieux/pln_proyecto2.git
-git push -u origin main
-'''
+```bash
+proyecto/
+  data/        NAP.xls, corpus/ (276 anciennes), nuevas_desc.csv
+  nlp_utils.py     limpia_lematiza, conceptos
+  grafo.py         Construye_Grafo, reducir_grafo, estadísticas
+  modelos.py       centralités, PageRank, node2vec, RRF
+  evaluacion.py    p@k, MRR, cobertura, tableau final
+  main.ipynb       exécute tout, génère les tableaux
+  README.md, requirements.txt
+```
