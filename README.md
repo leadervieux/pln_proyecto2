@@ -12,7 +12,7 @@ proyecto/
 ```
 
 ## Répartition en trois personnes
-#Personne 1 : données, évaluation, rapport
+# Personne 1 : données, évaluation, rapport
 Jour 1 : créer le dépôt, le dossier partagé et la structure ci-dessus. Définir le format nuevas_desc.csv (concepto, definicion, fuente, particion) et le partager.
 Jour 1 : lancer la collecte des 150 descriptions (tout le monde y participe, voir plus bas).
 Jour 1-2 : écrire evaluacion.py : evaluar(modelo, datos) qui retourne p@1/3/5, MRR et couverture (% de définitions avec au moins un lemme dans le graphe, nombre moyen de lemmes utiles). Corriger le lineas[1:] pour exclure le nom du concept. Livrer cette fonction en premier, les deux autres en ont besoin.
