@@ -1,15 +1,6 @@
 # pln_proyecto2
 
-```bash
-proyecto/
-  data/        NAP.xls, corpus/ (276 anciennes), nuevas_desc.csv
-  nlp_utils.py     limpia_lematiza, conceptos
-  grafo.py         Construye_Grafo, reducir_grafo, estadísticas
-  modelos.py       centralités, PageRank, node2vec, RRF
-  evaluacion.py    p@k, MRR, cobertura, tableau final
-  main.ipynb       exécute tout, génère les tableaux
-  README.md, requirements.txt
-```
+On garde ces trois fonctions : diccionario_dc(), diccionario_btc(), diccionario_cc() (meilleures mesures de centralité)
 
 # Répartition en trois personnes
 ## Célia : données, évaluation, rapport
