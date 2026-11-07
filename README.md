@@ -2,6 +2,168 @@
 
 On garde ces trois fonctions : diccionario_dc(), diccionario_btc(), diccionario_cc() (meilleures mesures de centralité)
 
+# Diccionario inverso con normas de asociación (NAP): PageRank personalizado y fusión de rankings
+
+**Proyecto de la Unidad 2 · PLN · Modalidad C (extensión metodológica sobre NAP)**
+Equipo: Celia (P1), Léa (P2), Max (P3)
+
+> Convención de este borrador: `[PENDIENTE: nombre]` indica una sección que debe redactar esa persona. Las secciones sin marca ya están redactadas por Léa (P2).
+
+---
+
+## 1. Introducción
+[PENDIENTE: Celia (P1)]
+- Descripción del problema (diccionario inverso, fenómeno de la «punta de la lengua»).
+- Modalidad elegida (C) y las dos extensiones: **PageRank personalizado** y **fusión de rankings (reciprocal rank fusion) entre la mejor medida de centralidad y node2vec**. Si el tiempo alcanza, grafo dirigido.
+
+## 2. Datos
+[PENDIENTE: Celia (P1)]
+- NAP (normas de asociación del español de México): descripción del recurso.
+- Conjunto de desarrollo: corpus de clase (276 descripciones de 56 conceptos).
+- Conjunto de prueba: ≥ 150 descripciones nuevas recolectadas por el equipo (cómo se recolectaron, cuántas se descartaron por contener la palabra objetivo).
+- Formato de los CSV y diccionario de datos.
+
+## 3. Construcción y caracterización del grafo
+
+### 3.1 Grafo
+Cada par estímulo–respuesta de NAP es una arista no dirigida entre dos nodos (palabras). Se construyeron tres grafos con la misma estructura (**4 239 nodos y 12 872 aristas** en el grafo de asociación), que difieren únicamente en el peso de las aristas. Implementación en Python con `networkx`.
+
+### 3.2 Esquemas de ponderación y transformación similitud → distancia
+Los algoritmos de caminos más cortos (intermediación, cercanía) interpretan el peso de una arista como un **costo**: a mayor peso, mayor distancia. En cambio, PageRank y node2vec lo interpretan como una **fuerza**: a mayor peso, mayor probabilidad de recorrer esa arista. Por eso cada arista guarda dos atributos:
+
+| Grafo | Valor original en NAP | `weight` (distancia, para caminos más cortos) | `sim` (fuerza, para PageRank y node2vec) |
+|---|---|---|---|
+| Asociación | fuerza de asociación FA | `100 − FA` | `FA` |
+| Frecuencia | frecuencia f | `1 / f` | `f` |
+| Tiempo | tiempo de respuesta t | `t` | `1 / (t + 1)` |
+
+Justificación:
+- **Asociación:** una FA alta indica una asociación fuerte, es decir, una distancia corta; `100 − FA` invierte la escala (FA = 80 → distancia 20; FA = 5 → distancia 95).
+- **Frecuencia:** una frecuencia alta indica asociación fuerte; `1/f` la convierte en distancia pequeña.
+- **Tiempo:** una respuesta rápida indica una asociación fuerte, por lo que el tiempo ya funciona como distancia y se usa directamente en `weight`. Para la fuerza se usa `1/(t+1)`: el `+1` evita la división entre cero, ya que NAP contiene tiempos iguales a 0.
+
+### 3.3 Estadísticas del grafo
+[PENDIENTE: Celia (P1)]
+- Número de nodos y aristas (ya disponible: 4 239 y 12 872), grado medio, número y tamaño de componentes conexas, coeficiente de agrupamiento y gráfica de la distribución de grado.
+
+### 3.4 Grafo reducido
+Para cada definición, el **grafo reducido** conserva solo los lemas de la definición y sus vecinos directos. Se usa por dos razones:
+1. **Costo computacional:** el grafo completo tiene 4 239 nodos y las medidas basadas en caminos más cortos son costosas; el subgrafo tiene unas pocas decenas de nodos.
+2. **Pertinencia:** en el grafo completo, la cercanía y el grado de una palabra no dependerían de la definición (siempre ganarían las palabras más conectadas). Restringir el grafo a la vecindad de la definición hace que estas medidas sean específicas de cada consulta. La palabra buscada casi siempre es vecina de algún lema de la definición.
+
+## 4. Preprocesamiento de las definiciones
+[PENDIENTE: Celia (P1)]
+- Pipeline: eliminación de signos de puntuación, palabras funcionales (NLTK) y lematización (spaCy `es_core_news_sm`).
+- Manejo de palabras fuera del vocabulario del grafo.
+- Cobertura: porcentaje de definiciones con al menos un lema en el grafo y número promedio de lemas útiles por definición.
+
+## 5. Modelos
+
+### 5.1 Modelos basados en centralidad (P2)
+En todos los casos, los lemas de la definición se excluyen de la lista de candidatos y solo se conservan los candidatos con puntaje mayor que cero (función `conceptos()` de la clase).
+
+| Modelo | Grafo | Qué mide | Peso usado |
+|---|---|---|---|
+| **Cercanía** (`diccionario_cc`) | reducido | distancia promedio de cada palabra al resto de la vecindad de la definición | `weight` |
+| **Intermediación por subconjunto** (`diccionario_btc`) | completo | cuántos caminos más cortos entre los lemas de la definición pasan por cada palabra | `weight` |
+| **Grado** (`diccionario_dc`) | reducido | número de vecinos de cada palabra en la vecindad de la definición | sin peso |
+
+Se descartaron Katz, vector propio y comunicabilidad: en los resultados de referencia de la clase (Tabla 1) son las medidas con menor desempeño y las de mayor costo (Katz tardó cerca de 16 minutos en la evaluación de clase).
+
+### 5.2 PageRank personalizado (extensión 1, P2)
+Se imagina un caminante aleatorio que recorre el grafo siguiendo las aristas, con preferencia por las de mayor `sim`. En cada paso, con probabilidad `alpha` continúa por una arista y con probabilidad `1 − alpha` **reinicia en uno de los lemas de la definición**. La distribución personalizada asigna probabilidad de reinicio solo a esos lemas. El puntaje de cada palabra es la fracción de tiempo que el caminante pasa en ella; las palabras con mayor puntaje (excluyendo los lemas de la definición) son los candidatos. Se aplica sobre el grafo completo.
+
+Implementación: `nx.pagerank(grafo, alpha=alpha, personalization=pers, weight="sim")`.
+
+**Ajuste de `alpha` (conjunto de desarrollo, grafo de asociación):**
+
+| alpha | p@1 | p@3 | p@5 |
+|---|---|---|---|
+| 0.2 | 0.420 | 0.598 | 0.696 |
+| 0.35 | 0.420 | 0.601 | 0.696 |
+| **0.5** | **0.424** | 0.609 | **0.707** |
+| 0.7 | **0.424** | **0.612** | 0.696 |
+| 0.85 | 0.409 | 0.598 | 0.685 |
+| 0.9 | 0.370 | 0.580 | 0.667 |
+
+Se fijó **alpha = 0.5**. Entre 0.2 y 0.7 las diferencias son mínimas (con 276 descripciones, un acierto más o menos cambia p@1 en 0.0036), por lo que el modelo es poco sensible a `alpha` en ese rango y solo se degrada con valores altos (≥ 0.85), cuando el caminante se aleja demasiado de la definición y ganan las palabras muy conectadas. El valor se eligió con el conjunto de desarrollo y **no se modificó** tras evaluar el conjunto de prueba.
+
+### 5.3 node2vec
+[PENDIENTE: Max (P3)]
+- Entrenamiento sobre el grafo usando la fuerza `sim` como peso (no la distancia), semillas fijas, al menos 3 configuraciones de hiperparámetros (dimensión, p, q, longitud y número de caminatas), representación de la definición por suma vectorial (y variantes), similitud coseno.
+
+### 5.4 Fusión de rankings (extensión 2)
+[PENDIENTE: Max (P3)]
+- Reciprocal rank fusion entre el mejor modelo de grafo (PageRank personalizado) y el mejor modelo node2vec: `score(palabra) = Σ 1 / (k + rango)`.
+
+## 6. Evaluación y resultados
+
+### 6.1 Métricas
+[PENDIENTE: Celia (P1)]
+- p@1, p@3, p@5, MRR y cobertura; separación entre desarrollo y prueba.
+
+### 6.2 Resultados en el conjunto de desarrollo (corpus de clase, 276 descripciones), modelos de grafos
+Resultados de Léa (P2). Se incluyen los de referencia de la Tabla 1 de la consigna para comparar.
+
+| Modelo | Grafo | Ponderación | p@1 | p@3 | p@5 |
+|---|---|---|---|---|---|
+| Grado | reducido | Asociación | 0.116 | 0.250 | 0.330 |
+| Cercanía | reducido | Asociación | 0.221 | 0.428 | 0.518 |
+| Cercanía | reducido | Frecuencia | 0.196 | 0.355 | 0.514 |
+| Cercanía | reducido | Tiempo | 0.076 | 0.214 | 0.286 |
+| Intermediación por subconjunto | completo | Asociación | **0.264** | 0.406 | 0.446 |
+| **PageRank personalizado (alpha 0.5)** | completo | Asociación | 0.424 | 0.609 | 0.707 |
+| **PageRank personalizado (alpha 0.5)** | completo | Frecuencia | 0.424 | 0.605 | 0.696 |
+| **PageRank personalizado (alpha 0.5)** | completo | Tiempo | 0.196 | 0.380 | 0.529 |
+
+*Nota de verificación:* las filas de cercanía (asociación y frecuencia) e intermediación coinciden con la Tabla 1 de la consigna, lo que indica que la evaluación es equivalente a la de clase. En grado (0.116 / 0.250 / 0.330 frente a 0.109 / 0.239 / 0.362) y cercanía con tiempo (0.076 frente a 0.083 en p@1) hay pequeñas diferencias, que probablemente se deben al orden de nodos con puntajes empatados.
+
+### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
+[PENDIENTE: Celia (P1)]
+- Incluir modelos de grafos, node2vec, RRF, MRR y cobertura, y el conjunto de prueba (corpus nuevo).
+
+## 7. Análisis de errores
+Se analizarán al menos 15 casos (5 por integrante), clasificados por causa (lematización, palabras fuera del vocabulario, polisemia, sesgo hacia nodos muy conectados, descripciones ambiguas).
+- Casos de Léa (P2): [PENDIENTE: Léa]
+- Casos de Celia (P1): [PENDIENTE: Celia (P1)]
+- Casos de Max (P3): [PENDIENTE: Max (P3)]
+
+## 8. Discusión
+
+### Pregunta 2. ¿Por qué la cercanía en el grafo reducido mejora p@5 respecto a la intermediación, pero no p@1?
+Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación (completo) 0.264 / 0.406 / 0.446.
+*Hipótesis (por verificar con los casos de error):* la intermediación por subconjunto asigna puntaje positivo solo a las palabras que están en caminos más cortos entre los lemas de la definición, y `conceptos()` descarta los puntajes nulos; por eso produce listas de candidatos cortas, y cuando acierta lo hace en primer lugar, pero con pocas alternativas si falla. La cercanía puntúa a todas las palabras de la vecindad, lo que da listas más largas y una buena palabra aparece entre los primeros cinco con más frecuencia, aunque no siempre ocupe el primer lugar. [Verificar contando la longitud promedio de las listas de cada modelo.]
+¿Ocurre lo mismo con nuestro recurso? Sí: con el mismo NAP obtuvimos el mismo patrón que en clase (misma tabla), pero PageRank supera a ambos en p@1 y p@5.
+
+### Pregunta 3. ¿Qué ponderación funciona mejor y por qué? ¿Cómo influye la transformación de similitud a distancia?
+| Modelo | Asociación | Frecuencia | Tiempo |
+|---|---|---|---|
+| PageRank (alpha 0.5) | 0.424 / 0.609 / 0.707 | 0.424 / 0.605 / 0.696 | 0.196 / 0.380 / 0.529 |
+| Cercanía (reducido) | 0.221 / 0.428 / 0.518 | 0.196 / 0.355 / 0.514 | 0.076 / 0.214 / 0.286 |
+
+- **La asociación es la mejor ponderación** en ambos modelos, con la frecuencia muy cerca (en PageRank, p@1 idéntico, 0.424, y p@5 de 0.707 contra 0.696) y el **tiempo claramente la peor**, sobre todo en p@1 (0.196 con PageRank y 0.076 con cercanía). Una explicación plausible: la fuerza de asociación y la frecuencia miden directamente cuántos participantes dieron esa respuesta, mientras que el tiempo de respuesta es una señal más ruidosa (depende de cada participante y de cuántas palabras se le ocurren).
+- PageRank supera a la cercanía con las tres ponderaciones en p@1, p@3 y p@5, y con el tiempo (p@5 = 0.529) alcanza un nivel parecido al de la mejor cercanía con asociación (0.518).
+- **Influencia de la transformación:** en los modelos de caminos más cortos, `100 − FA` y `1/f` determinan qué caminos se consideran «cortos»; otra transformación (por ejemplo `−log p`) cambiaría los caminos y, por tanto, los puntajes. En PageRank y node2vec se usa directamente la fuerza `sim`, sin transformar.
+- Todos los resultados de PageRank se obtuvieron con alpha = 0.5.
+
+### Otras preguntas guía
+[PENDIENTE: Celia (P1) o Max (P3), una pregunta más de la lista, por ejemplo la 5: ¿en qué definiciones gana el grafo y en cuáles node2vec?]
+
+## 9. Conclusiones y limitaciones
+[PENDIENTE: Celia (P1)]
+
+## 10. Uso de IA generativa
+Se declara el uso de Claude (Anthropic) como apoyo para explicar la consigna y los notebooks, y para revisar y redactar parte del código y de este documento. Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
+
+## 11. Reproducibilidad
+[PENDIENTE: Celia (P1)]
+- Dependencias (`requirements.txt`), semillas fijas, instrucciones para reproducir cada tabla.
+
+## Referencias
+- Reyes-Magaña, J., Bel-Enguix, G., Gómez-Adorno, H., Sierra, G., Pinto, D., & Singh, V. (2019). A lexical search model based on word association norms. *Journal of Intelligent & Fuzzy Systems, 36*(5).
+- Grover, A., & Leskovec, J. (2016). node2vec: Scalable feature learning for networks. *KDD 2016*, 855–864.
+- Mijangos, V., Barrón-Martínez, J. B., Arias-Trejo, N., & Bel-Enguix, G. (2017). A graph-based analysis of the corpus of word association norms for Mexican Spanish. *COMPLEXIS 2017*, 87–93.
+
 # Répartition en trois personnes
 ## Célia : données, évaluation, rapport
 Jour 1 : créer le dépôt, le dossier partagé et la structure ci-dessus. Définir le format nuevas_desc.csv (concepto, definicion, fuente, particion) et le partager.
