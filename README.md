@@ -1,4 +1,6 @@
 # pln_proyecto2
+
+
 # Diccionario inverso con normas de asociación (NAP): PageRank personalizado y fusión de rankings
 
 **Proyecto de la Unidad 2 · PLN · Modalidad C (extensión metodológica sobre NAP)**
@@ -119,13 +121,37 @@ Resultados de Léa (P2). Se incluyen los de referencia de la Tabla 1 de la consi
 
 *Nota de verificación:* las filas de cercanía (asociación y frecuencia) e intermediación coinciden con la Tabla 1 de la consigna, lo que indica que la evaluación es equivalente a la de clase. En grado (0.116 / 0.250 / 0.330 frente a 0.109 / 0.239 / 0.362) y cercanía con tiempo (0.076 frente a 0.083 en p@1) hay pequeñas diferencias, que probablemente se deben al orden de nodos con puntajes empatados. Lo mismo ocurre con la intermediación en grafo reducido (0.167 / 0.362 / 0.449 frente a 0.159 / 0.344 / 0.431 en la Tabla 1).
 
+### 6.2b Resultados en el conjunto de prueba (corpus nuevo), modelos de grafos
+[PENDIENTE: Léa, cuando Celia entregue el corpus nuevo]
+- Una sola ejecución, sin modificar nada: cercanía, grado, intermediación (completa y reducida) y PageRank personalizado con alpha = 0.5, grafo de asociación.
+
 ### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
 [PENDIENTE: Celia (P1)]
 - Incluir modelos de grafos, node2vec, RRF, MRR y cobertura, y el conjunto de prueba (corpus nuevo).
 
 ## 7. Análisis de errores
 Se analizarán al menos 15 casos (5 por integrante), clasificados por causa (lematización, palabras fuera del vocabulario, polisemia, sesgo hacia nodos muy conectados, descripciones ambiguas).
-- Casos de Léa (P2): [PENDIENTE: Léa]
+### 7.1 Casos de Léa (P2): PageRank personalizado, grafo de asociación, alpha = 0.5
+Casos tomados del corpus de clase (conjunto de desarrollo). «Posición» es el lugar que ocupa el concepto correcto en la lista de candidatos (el modelo acierta p@5 si es ≤ 5).
+
+| # | Concepto | Descripción | Lemas (fuera del grafo) | Posición | Top 5 | Causa |
+|---|---|---|---|---|---|---|
+| 1 | guajolote | «Se acompaña con mole» | él, acompañar, mo, él (acompañar, mo) | no aparece | botella, agua, vino, alcohol, vidrio | **Lematización y palabra funcional con mayúscula.** «mole» se lematiza como «mo» y «Se» no se filtra como palabra funcional, así que se convierte en el lema «él» (que sí es un nodo del grafo). La consulta queda casi sin contenido útil. |
+| 2 | queso | «El producto que se saca de la leche de la vaca» | el, producto, saco, leche, vacar (el, vacar) | 11 | botón, dinero, tienda, vaca, mercado | **Lematización palabra por palabra.** «saca» se lematiza como «saco» (sustantivo) y «vaca» como «vacar»; al no reconocerse «vaca» como lema de la definición, **aparece entre los candidatos pese a estar en la descripción**. Además «producto» es un nodo genérico (dinero, tienda, mercado). |
+| 3 | guajolote | «el animal que dice "gordogordogordo"» | animal, decir, gordogordogordo (decir, gordogordogordo) | 8 | hipopótamo, oso, jirafa, venado, cochino | **Palabra fuera del vocabulario** (onomatopeya y verbo «decir»). Solo queda «animal», un nodo muy general, y el modelo devuelve animales en general. |
+| 4 | plancha | «el aparato con el que la ropa queda lisa» | aparato, ropa, quedar, lisa (quedar) | 10 | cara, cámara, televisión, ba_t, mano | **Sesgo hacia nodos muy conectados.** «aparato» está enlazado con muchos aparatos (cámara, televisión) y probablemente «lisa» se asocia con partes del cuerpo (cara, mano) más que con la ropa. |
+| 5 | radio | «Programa» | programa | 12 | televisión, computador, entretenimiento, película, ver | **Descripción demasiado corta y ambigua.** Con un solo lema, PageRank devuelve vecinos plausibles de «programa» (medios de entretenimiento), pero no distingue «radio». |
+
+Caso adicional: borrego, «animal que produce lana» (posición 27, top 5: hipopótamo, oso, jirafa, venado, cochino): «lana» se lematiza como «lán» y «producir» queda fuera del grafo, por lo que solo queda «animal» (como en el caso 3).
+
+### 7.2 Hallazgos generales (P2)
+1. **Palabras funcionales con mayúscula inicial.** `limpia_lematiza` compara cada palabra con la lista de palabras funcionales (en minúsculas) *antes* de pasar el texto a minúsculas, por lo que «La», «El» o «Se» no se eliminan y se convierten en los lemas «el» o «él», que son nodos del grafo y contaminan la consulta (casos 1 y 2, y también en «gelatina»).
+2. **Lematización palabra por palabra, sin contexto.** Cada palabra se pasa sola a spaCy, lo que produce lemas incorrectos: mole → mo, saca → saco, vaca → vacar, lana → lán, alpaca → alpacar.
+3. **Vocabulario.** Los verbos (acompañar, decir, quedar, producir) y algunos sustantivos (agujero, cuaja, similar) no están en el grafo, de modo que a menudo solo sobrevive un lema genérico.
+4. **Nodos genéricos.** Palabras como «animal», «aparato» o «producto» arrastran a los mismos vecinos muy conectados (hipopótamo, oso, cámara, televisión) sin importar el concepto.
+5. **Casi aciertos.** En varios errores el concepto aparece cerca del top 5 (posiciones 6 a 12), o el modelo devuelve una variante (en «aspiradora», «aspirador»), por lo que p@5 subestima en parte la utilidad del sistema.
+
+Mejoras posibles, **no aplicadas** para mantener la comparabilidad con el pipeline de clase y la Tabla 1: pasar a minúsculas antes de filtrar palabras funcionales y lematizar la frase completa (con contexto) en lugar de palabra por palabra.
 - Casos de Celia (P1): [PENDIENTE: Celia (P1)]
 - Casos de Max (P3): [PENDIENTE: Max (P3)]
 
@@ -154,13 +180,8 @@ Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación 
 [PENDIENTE: Celia (P1)]
 
 ## 10. Uso de IA generativa
-Se declara el uso de Claude (Anthropic) como apoyo. 
+Se declara el uso de Claude (Anthropic) como apoyo.
 Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
-
-## 11. Reproducibilidad
-[PENDIENTE: Celia (P1)]
-- Dependencias (`requirements.txt`), semillas fijas, instrucciones para reproducir cada tabla.
-
 
 
 # Répartition en trois personnes
