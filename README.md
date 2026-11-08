@@ -1,7 +1,4 @@
 # pln_proyecto2
-
-On garde ces trois fonctions : diccionario_dc(), diccionario_btc(), diccionario_cc() (meilleures mesures de centralité)
-
 # Diccionario inverso con normas de asociación (NAP): PageRank personalizado y fusión de rankings
 
 **Proyecto de la Unidad 2 · PLN · Modalidad C (extensión metodológica sobre NAP)**
@@ -66,6 +63,7 @@ En todos los casos, los lemas de la definición se excluyen de la lista de candi
 |---|---|---|---|
 | **Cercanía** (`diccionario_cc`) | reducido | distancia promedio de cada palabra al resto de la vecindad de la definición | `weight` |
 | **Intermediación por subconjunto** (`diccionario_btc`) | completo | cuántos caminos más cortos entre los lemas de la definición pasan por cada palabra | `weight` |
+| **Intermediación** (`diccionario_btc_reducido`) | reducido | lo mismo, pero calculado solo sobre la vecindad de la definición | `weight` |
 | **Grado** (`diccionario_dc`) | reducido | número de vecinos de cada palabra en la vecindad de la definición | sin peso |
 
 Se descartaron Katz, vector propio y comunicabilidad: en los resultados de referencia de la clase (Tabla 1) son las medidas con menor desempeño y las de mayor costo (Katz tardó cerca de 16 minutos en la evaluación de clase).
@@ -112,11 +110,14 @@ Resultados de Léa (P2). Se incluyen los de referencia de la Tabla 1 de la consi
 | Cercanía | reducido | Frecuencia | 0.196 | 0.355 | 0.514 |
 | Cercanía | reducido | Tiempo | 0.076 | 0.214 | 0.286 |
 | Intermediación por subconjunto | completo | Asociación | **0.264** | 0.406 | 0.446 |
+| Intermediación | reducido | Asociación | 0.167 | 0.362 | 0.449 |
+| Intermediación | reducido | Frecuencia | 0.138 | 0.301 | 0.362 |
+| Intermediación | reducido | Tiempo | 0.083 | 0.207 | 0.261 |
 | **PageRank personalizado (alpha 0.5)** | completo | Asociación | 0.424 | 0.609 | 0.707 |
 | **PageRank personalizado (alpha 0.5)** | completo | Frecuencia | 0.424 | 0.605 | 0.696 |
 | **PageRank personalizado (alpha 0.5)** | completo | Tiempo | 0.196 | 0.380 | 0.529 |
 
-*Nota de verificación:* las filas de cercanía (asociación y frecuencia) e intermediación coinciden con la Tabla 1 de la consigna, lo que indica que la evaluación es equivalente a la de clase. En grado (0.116 / 0.250 / 0.330 frente a 0.109 / 0.239 / 0.362) y cercanía con tiempo (0.076 frente a 0.083 en p@1) hay pequeñas diferencias, que probablemente se deben al orden de nodos con puntajes empatados.
+*Nota de verificación:* las filas de cercanía (asociación y frecuencia) e intermediación coinciden con la Tabla 1 de la consigna, lo que indica que la evaluación es equivalente a la de clase. En grado (0.116 / 0.250 / 0.330 frente a 0.109 / 0.239 / 0.362) y cercanía con tiempo (0.076 frente a 0.083 en p@1) hay pequeñas diferencias, que probablemente se deben al orden de nodos con puntajes empatados. Lo mismo ocurre con la intermediación en grafo reducido (0.167 / 0.362 / 0.449 frente a 0.159 / 0.344 / 0.431 en la Tabla 1).
 
 ### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
 [PENDIENTE: Celia (P1)]
@@ -131,7 +132,7 @@ Se analizarán al menos 15 casos (5 por integrante), clasificados por causa (lem
 ## 8. Discusión
 
 ### Pregunta 2. ¿Por qué la cercanía en el grafo reducido mejora p@5 respecto a la intermediación, pero no p@1?
-Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación (completo) 0.264 / 0.406 / 0.446.
+Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación (completo) 0.264 / 0.406 / 0.446. Si la intermediación también se calcula sobre el grafo reducido (0.167 / 0.362 / 0.449), la cercanía gana en los tres valores de k: la ventaja de la intermediación en p@1 aparece solo cuando se calcula sobre el grafo completo.
 *Hipótesis (por verificar con los casos de error):* la intermediación por subconjunto asigna puntaje positivo solo a las palabras que están en caminos más cortos entre los lemas de la definición, y `conceptos()` descarta los puntajes nulos; por eso produce listas de candidatos cortas, y cuando acierta lo hace en primer lugar, pero con pocas alternativas si falla. La cercanía puntúa a todas las palabras de la vecindad, lo que da listas más largas y una buena palabra aparece entre los primeros cinco con más frecuencia, aunque no siempre ocupe el primer lugar. [Verificar contando la longitud promedio de las listas de cada modelo.]
 ¿Ocurre lo mismo con nuestro recurso? Sí: con el mismo NAP obtuvimos el mismo patrón que en clase (misma tabla), pero PageRank supera a ambos en p@1 y p@5.
 
@@ -153,16 +154,14 @@ Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación 
 [PENDIENTE: Celia (P1)]
 
 ## 10. Uso de IA generativa
-Se declara el uso de Claude (Anthropic) como apoyo para explicar la consigna y los notebooks, y para revisar y redactar parte del código y de este documento. Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
+Se declara el uso de Claude (Anthropic) como apoyo. 
+Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
 
 ## 11. Reproducibilidad
 [PENDIENTE: Celia (P1)]
 - Dependencias (`requirements.txt`), semillas fijas, instrucciones para reproducir cada tabla.
 
-## Referencias
-- Reyes-Magaña, J., Bel-Enguix, G., Gómez-Adorno, H., Sierra, G., Pinto, D., & Singh, V. (2019). A lexical search model based on word association norms. *Journal of Intelligent & Fuzzy Systems, 36*(5).
-- Grover, A., & Leskovec, J. (2016). node2vec: Scalable feature learning for networks. *KDD 2016*, 855–864.
-- Mijangos, V., Barrón-Martínez, J. B., Arias-Trejo, N., & Bel-Enguix, G. (2017). A graph-based analysis of the corpus of word association norms for Mexican Spanish. *COMPLEXIS 2017*, 87–93.
+
 
 # Répartition en trois personnes
 ## Célia : données, évaluation, rapport
