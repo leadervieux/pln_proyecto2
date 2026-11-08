@@ -122,8 +122,19 @@ Resultados de Léa (P2). Se incluyen los de referencia de la Tabla 1 de la consi
 *Nota de verificación:* las filas de cercanía (asociación y frecuencia) e intermediación coinciden con la Tabla 1 de la consigna, lo que indica que la evaluación es equivalente a la de clase. En grado (0.116 / 0.250 / 0.330 frente a 0.109 / 0.239 / 0.362) y cercanía con tiempo (0.076 frente a 0.083 en p@1) hay pequeñas diferencias, que probablemente se deben al orden de nodos con puntajes empatados. Lo mismo ocurre con la intermediación en grafo reducido (0.167 / 0.362 / 0.449 frente a 0.159 / 0.344 / 0.431 en la Tabla 1).
 
 ### 6.2b Resultados en el conjunto de prueba (corpus nuevo), modelos de grafos
-[PENDIENTE: Léa, cuando Celia entregue el corpus nuevo]
-- Una sola ejecución, sin modificar nada: cercanía, grado, intermediación (completa y reducida) y PageRank personalizado con alpha = 0.5, grafo de asociación.
+Corpus nuevo (`nuevas_desc.csv`): 174 descripciones de 29 conceptos, escritas por el equipo. Todos los conceptos existen como nodos del grafo. Se omitieron 6 descripciones que contienen la propia palabra objetivo (por ejemplo, «fruta de color naranja» para *naranja*), por lo que se evaluaron **168**. Una sola ejecución por modelo, sin modificar parámetros tras ver los resultados (alpha = 0.5, fijado en el conjunto de desarrollo). Grafo de asociación.
+
+| Modelo | Grafo | p@1 | p@3 | p@5 |
+|---|---|---|---|---|
+| **PageRank personalizado (alpha 0.5)** | completo | 0.405 | 0.613 | 0.690 |
+| Cercanía | reducido | 0.268 | 0.488 | 0.560 |
+| Grado | reducido | 0.101 | 0.250 | 0.363 |
+| Intermediación por subconjunto | completo | 0.280 | 0.458 | 0.542 |
+| Intermediación | reducido | 0.155 | 0.399 | 0.554 |
+
+PageRank mantiene en prueba un desempeño muy cercano al de desarrollo (0.424 / 0.609 / 0.707): la diferencia es de 0.017 como máximo, es decir, de unas 3 descripciones sobre 168, por lo que no hay señal de que el ajuste de alpha haya sobreajustado el conjunto de desarrollo.
+
+PageRank personalizado es el mejor modelo de grafos en los tres valores de k también en el conjunto de prueba (p@5 = 0.690 frente a 0.560 de la mejor medida de centralidad, la cercanía). Las medidas de centralidad obtienen en prueba resultados parecidos o algo mayores que en desarrollo (por ejemplo, la cercanía pasa de 0.221 / 0.428 / 0.518 a 0.268 / 0.488 / 0.560), por lo que la ventaja de PageRank se reduce en prueba, aunque se mantiene. Los conceptos del corpus nuevo son distintos de los del corpus de clase, así que esta diferencia puede deberse en parte a los conceptos elegidos; no se probó.
 
 ### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
 [PENDIENTE: Celia (P1)]
@@ -159,8 +170,19 @@ Mejoras posibles, **no aplicadas** para mantener la comparabilidad con el pipeli
 
 ### Pregunta 2. ¿Por qué la cercanía en el grafo reducido mejora p@5 respecto a la intermediación, pero no p@1?
 Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación (completo) 0.264 / 0.406 / 0.446. Si la intermediación también se calcula sobre el grafo reducido (0.167 / 0.362 / 0.449), la cercanía gana en los tres valores de k: la ventaja de la intermediación en p@1 aparece solo cuando se calcula sobre el grafo completo.
-*Hipótesis (por verificar con los casos de error):* la intermediación por subconjunto asigna puntaje positivo solo a las palabras que están en caminos más cortos entre los lemas de la definición, y `conceptos()` descarta los puntajes nulos; por eso produce listas de candidatos cortas, y cuando acierta lo hace en primer lugar, pero con pocas alternativas si falla. La cercanía puntúa a todas las palabras de la vecindad, lo que da listas más largas y una buena palabra aparece entre los primeros cinco con más frecuencia, aunque no siempre ocupe el primer lugar. [Verificar contando la longitud promedio de las listas de cada modelo.]
-¿Ocurre lo mismo con nuestro recurso? Sí: con el mismo NAP obtuvimos el mismo patrón que en clase (misma tabla), pero PageRank supera a ambos en p@1 y p@5.
+**Explicación (verificada midiendo la longitud de las listas de candidatos).** La intermediación por subconjunto asigna puntaje positivo solo a las palabras que están en caminos más cortos entre los lemas de la definición, y `conceptos()` descarta los puntajes nulos. Por eso produce listas muy cortas: cuando el concepto aparece, suele hacerlo en los primeros lugares, pero casi nunca hay alternativas si no es el primero. La cercanía puntúa a todas las palabras de la vecindad, lo que da listas largas y hace más probable que el concepto aparezca entre los primeros cinco aunque no sea el primero.
+
+| Modelo | Conjunto | Longitud media de la lista | Listas con menos de 5 candidatos | Listas vacías |
+|---|---|---|---|---|
+| Cercanía (reducido) | desarrollo | 54.8 | 12.0 % | 3.3 % |
+| Intermediación por subconjunto (completo) | desarrollo | 4.3 | 67.0 % | 25.7 % |
+| PageRank (completo) | desarrollo | 92.6 | 3.3 % | 3.3 % |
+| Cercanía (reducido) | prueba | 56.0 | 2.9 % | 0.6 % |
+| Intermediación por subconjunto (completo) | prueba | 5.5 | 52.3 % | 9.2 % |
+| PageRank (completo) | prueba | 95.0 | 0.6 % | 0.6 % |
+
+La intermediación devuelve en promedio solo 4 o 5 candidatos, y más de la mitad de sus listas tienen menos de 5, mientras que la cercanía devuelve más de 50. Además, la intermediación devuelve una lista vacía en el 25.7 % de las descripciones de desarrollo (9.2 % en prueba), probablemente porque, cuando solo un lema de la definición está en el grafo, no existen caminos entre lemas distintos y todos los puntajes son nulos; esta causa no se verificó por separado. Esto limita su p@3 y p@5. A pesar de ello, cuando la lista no está vacía, su p@1 es más alto: dividiendo p@1 entre la fracción de listas no vacías, resulta aproximadamente 0.36 para la intermediación frente a 0.23 para la cercanía en desarrollo (0.264 / 0.743 y 0.221 / 0.967), y 0.31 frente a 0.27 en prueba. PageRank puntúa casi todos los nodos del grafo, por lo que sus listas son las más largas (92 a 95 candidatos).
+¿Ocurre lo mismo con nuestro recurso? Sí. Con el mismo NAP obtuvimos el mismo patrón que en clase (misma tabla) y, en el corpus nuevo de prueba, también: la intermediación por subconjunto (grafo completo) gana en p@1 (0.280 frente a 0.268 de la cercanía), pero la cercanía es mejor en p@3 (0.488 frente a 0.458) y en p@5 (0.560 frente a 0.542). Además, PageRank supera a ambas en p@1, p@3 y p@5 tanto en desarrollo como en prueba.
 
 ### Pregunta 3. ¿Qué ponderación funciona mejor y por qué? ¿Cómo influye la transformación de similitud a distancia?
 | Modelo | Asociación | Frecuencia | Tiempo |
@@ -180,8 +202,9 @@ Resultados: cercanía (reducido) 0.221 / 0.428 / 0.518 frente a intermediación 
 [PENDIENTE: Celia (P1)]
 
 ## 10. Uso de IA generativa
-Se declara el uso de Claude (Anthropic) como apoyo.
-Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
+Se declara el uso de Claude (Anthropic) como apoyo. Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
+
+
 
 
 # Répartition en trois personnes
