@@ -26,7 +26,6 @@ from node2vec import Node2Vec
 
 import evaluacion as ev
 
-import paso_a_paso_2 as ps
 
 # ------------------------------------------------------------------ Config
 DIRECTORIO = "./"
@@ -263,7 +262,4 @@ def demo_gradio(modelo, k=5):
 if __name__ == "__main__":
     print(__doc__)
     print("Ce fichier est une bibliothèque. Lance plutôt : python paso_a_paso.py 1")
-    grafos, datos = ps.cargar()
-    wv = entrena_node2vec(grafos["asoc"], "asoc", dimensions=200, walk_length=20, num_walks=10, p=1.0, q=1.0 )
-    res = evaluar_dev(crea_modelo(wv, "suma"), datos)
-    print(res)
+
