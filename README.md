@@ -72,7 +72,7 @@ En todos los casos, los lemas de la definición se excluyen de la lista de candi
 | **Intermediación** (`diccionario_btc_reducido`) | reducido | lo mismo, pero calculado solo sobre la vecindad de la definición | `weight` |
 | **Grado** (`diccionario_dc`) | reducido | número de vecinos de cada palabra en la vecindad de la definición | sin peso |
 
-Se descartaron Katz, vector propio y comunicabilidad: en los resultados de referencia de la clase (Tabla 1) son las medidas con menor desempeño y las de mayor costo (Katz tardó cerca de 16 minutos en la evaluación de clase).
+Se descartaron Katz, vector propio y comunicabilidad: en los resultados de referencia de la clase (Tabla 1) son las medidas con menor desempeño y las de mayor costo.
 
 ### 5.2 PageRank personalizado (extensión 1, P2)
 Se imagina un caminante aleatorio que recorre el grafo siguiendo las aristas, con preferencia por las de mayor `sim`. En cada paso, con probabilidad `alpha` continúa por una arista y con probabilidad `1 − alpha` **reinicia en uno de los lemas de la definición**. La distribución personalizada asigna probabilidad de reinicio solo a esos lemas. El puntaje de cada palabra es la fracción de tiempo que el caminante pasa en ella; las palabras con mayor puntaje (excluyendo los lemas de la definición) son los candidatos. Se aplica sobre el grafo completo.
@@ -327,8 +327,5 @@ La intermediación devuelve en promedio solo 4 o 5 candidatos, y más de la mita
 
 ## 10. Uso de IA generativa
 Se declara el uso de Claude (Anthropic) como apoyo. Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
-
-
-Jour 5 : chacun analyse 5 cas d’erreur, classés par cause (lemmatisation, hors vocabulaire, polysémie, nœuds très connectés, description ambiguë).
 
 Jour 6 : répétition de la présentation (15 min). N’importe qui peut être interrogé sur n’importe quelle partie, donc relisez le code des autres. Déclarez l’usage de l’IA.
