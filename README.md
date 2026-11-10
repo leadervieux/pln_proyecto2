@@ -141,6 +141,7 @@ Son 9 configuraciones (la de referencia y 8 variantes). Además, antes de explor
 | `q` = 2 | 128 | 1 | 2 | 80 | 10 | 0.127 | 0.254 | 0.351 | 0.230 |
 | Longitud 30 | 128 | 1 | 1 | 30 | 10 | 0.051 | 0.080 | 0.120 | 0.103 |
 | Caminatas 20 **(elegida)** | 128 | 1 | 1 | 80 | 20 | 0.268 | 0.402 | 0.464 | 0.365 |
+| Caminatas 20 **(elegida)** y dimension 64 | 64 |	80 | 20	| 1.0	| 1.0	| asoc | suma	| 276	| 0.308 |	0.475 |	0.525 |	0.409 |	0.964 |	0.957 |	3.0435 |
 
 Configuración elegida (mejor MRR en desarrollo): **128 dimensiones, `p` = 1, `q` = 1, caminatas de longitud 80 y 20 caminatas por nodo** (MRR 0.365).
 
@@ -154,7 +155,7 @@ Configuración elegida (mejor MRR en desarrollo): **128 dimensiones, `p` = 1, `q
 
 **Lectura de los resultados (desarrollo).**
 - **Ponderación.** Asociación > frecuencia > tiempo, el mismo orden que obtuvo PageRank (sección 8, pregunta 3). La diferencia entre asociación y frecuencia es pequeña (MRR 0.283 frente a 0.265); el tiempo es claramente peor (0.212).
-- **Hiperparámetros.** Solo dos cambios mejoran la referencia (MRR 0.283): **20 caminatas por nodo** (0.365) y **dimensión 64** (0.358). En cambio, **dimensión 300** (0.199) y sobre todo **caminatas de longitud 30** (0.103, p@1 = 0.051) la empeoran mucho, y alejar `p` o `q` de 1 en cualquier sentido también baja el MRR. Una explicación plausible, **no verificada**, es que el grafo es pequeño (4 239 nodos y grado medio cercano a 6): con pocas caminatas o caminatas cortas hay poco contexto por nodo, y 300 dimensiones son demasiadas para tan pocos datos. Como cada variable se cambió por separado, **no se probó la combinación** (por ejemplo, dimensión 64 con 20 caminatas), que podría mejorar más. Las diferencias entre las dos mejores configuraciones (0.365 y 0.358) son de pocas descripciones sobre 276.
+- **Hiperparámetros.** Solo dos cambios mejoran la referencia (MRR 0.283): **20 caminatas por nodo** (0.365) y **dimensión 64** (0.358). En cambio, **dimensión 300** (0.199) y sobre todo **caminatas de longitud 30** (0.103, p@1 = 0.051) la empeoran mucho, y alejar `p` o `q` de 1 en cualquier sentido también baja el MRR. Una explicación plausible, **no verificada**, es que el grafo es pequeño (4 239 nodos y grado medio cercano a 6): con pocas caminatas o caminatas cortas hay poco contexto por nodo, y 300 dimensiones son demasiadas para tan pocos datos. Finalmente se probo una combinacion entre dimension 64 y caminatas 20, es el mejor modelo actual.
 - **Representación de la descripción.** Suma y promedio son idénticas (el coseno no depende de la longitud del vector). La suma con IDF cambia p@1 (0.272 frente a 0.268) pero baja p@5 (0.453 frente a 0.464) y el MRR (0.363 frente a 0.365), por lo que se conservó la suma simple.
 - node2vec solo queda muy por debajo de PageRank en desarrollo (p@1 0.268 frente a 0.424): por sí solo no compite con el mejor modelo de grafos, y su interés está en la fusión (sección 5.4).
 
