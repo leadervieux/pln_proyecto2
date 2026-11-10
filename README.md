@@ -143,7 +143,7 @@ Son 9 configuraciones (la de referencia y 8 variantes). Además, antes de explor
 | Caminatas 20 **(elegida)** | 128 | 1 | 1 | 80 | 20 | 0.268 | 0.402 | 0.464 | 0.365 |
 | Caminatas 20 **(elegida)** y dimension 64 | 64 |	1 | 1	| 80	| 20	| 0.308 |	0.475 |	0.525 |	0.409 |
 
-Configuración elegida (mejor MRR en desarrollo): **128 dimensiones, `p` = 1, `q` = 1, caminatas de longitud 80 y 20 caminatas por nodo** (MRR 0.365).
+Configuración elegida (mejor MRR en desarrollo): **64 dimensiones, `p` = 1, `q` = 1, caminatas de longitud 80 y 20 caminatas por nodo** (MRR 0.365).
 
 *Representación de la descripción (configuración elegida, desarrollo)*
 
