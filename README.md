@@ -15,7 +15,7 @@ Para este proyecto se seleccionó la **Modalidad C**, basada en las Normas de As
 Adicionalmente, se recolectó y evaluó un conjunto de prueba compuesto por descripciones inéditas redactadas por el equipo.
 
 ## 2. Datos
-* **NAP (Normas de Asociación de Palabras del español de México):** Recurso léxico que representa relaciones de estímulo-respuesta, estructurado como un grafo con frecuencias, tiempos de respuesta y porcentajes de asociación (FA).
+* **NAP :** Recurso léxico que representa relaciones de estímulo-respuesta, estructurado como un grafo con frecuencias, tiempos de respuesta y porcentajes de asociación (FA).
 * **Conjunto de desarrollo:** El corpus tradicional de clase, compuesto por **276 descripciones** asociadas a **56 conceptos**.
 * **Conjunto de prueba:** **174 nuevas descripciones** recolectadas por el equipo para 29 conceptos. Estas descripciones fueron escritas por personas que describieron los conceptos sin mencionar la palabra objetivo. Se descartaron 6 descripciones por contener explícitamente el término objetivo, por lo que se evaluaron efectivamente **168 descripciones**. Todos los conceptos del conjunto de prueba existen como nodos válidos dentro del grafo NAP.
 * **Formato y diccionario de datos:** Los datos se estructuran en archivos CSV bajo columnas normalizadas (`concepto`, `definicion`, `fuente`, `particion`), permitiendo una separación estricta entre desarrollo y prueba.
