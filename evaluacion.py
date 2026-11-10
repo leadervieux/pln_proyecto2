@@ -30,9 +30,6 @@ PARTICION = "fuente"         # "fuente" : corpus du cours = développement, desc
 USAR_ALIAS = False           # False = comme la classe (Tableau 1) : 'aspiradora' et 'playera' ne sont pas des nœuds du graphe,
                              # donc leurs descriptions ne peuvent jamais être trouvées. True = on les relie à leur variante.
 
-# Concepts du corpus qui ne sont pas des nœuds NAP mais dont une variante l'est (vérifié dans NAP.xls).
-# Utilisé seulement si USAR_ALIAS = True. ('papas' n'en a pas besoin : le titre du fichier Papas.txt est « Papa ».
-# 'tijera' est déjà un nœud ; 'tijeras' n'en est pas un.)
 ALIAS = {"playera": "playero", "aspiradora": "aspirador"}
 
 
@@ -84,24 +81,29 @@ def semillas(definicion):
         return list(_cache[clave])
     _cargar_nlp()
     vistos = []
+    
+    # On s'assure d'avoir une chaîne propre et en minuscules dès le départ
+    texto = str(definicion).strip().lower()
+    
     if PREPROCESO == "curso":
-        # Identique à limpia_lematiza + filtrage du diccionario_btc du cours
-        texto = definicion
         for c in string.punctuation:
             texto = texto.replace(c, "")
-        for palabra in texto.strip().split():
-            if palabra not in _STOP:
-                lema = _nlp(palabra)[0].lemma_.lower()
-                if lema and lema in _NODOS and lema not in vistos:
-                    vistos.append(lema)
+        for palabra in texto.split():
+            if palabra and palabra not in _STOP:
+                doc = _nlp(palabra)
+                if doc and len(doc) > 0:
+                    lema = doc[0].lemma_.lower()
+                    if lema and lema in _NODOS and lema not in vistos:
+                        vistos.append(lema)
     else:
-        for t in _nlp(definicion.lower()):
+        for t in _nlp(texto):
             if not t.is_alpha or t.text in _STOP or t.lemma_.lower() in _STOP:
                 continue
             lema = t.lemma_.lower()
             pal = lema if lema in _NODOS else (t.text if t.text in _NODOS else None)
             if pal and pal not in vistos:
                 vistos.append(pal)
+                
     _cache[clave] = tuple(vistos)
     return vistos
 
@@ -116,7 +118,7 @@ def menciona_objetivo(definicion, concepto):
     """True si la description contient le mot cible (ou un dérivé simple : pluriel, diminutif)"""
     objetivos = {_norm(concepto), _norm(_alias(concepto))}
     texto = _norm(definicion)
-    if any(len(o) >= 5 and o in texto for o in objetivos):     # sous-chaîne (ex. « telarañas » contient « araña »)
+    if any(len(o) >= 5 and o in texto for o in objetivos):
         return True
     for t in re.findall(r"\w+", texto):
         for o in objetivos:
@@ -131,12 +133,11 @@ def menciona_objetivo(definicion, concepto):
 
 
 # ----------------------------------------------------------------------------- données
-def _quita_u(s):   # Noms de fichiers du .zip 
+def _quita_u(s):
     return re.sub(r"#U([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), s)
 
 
 def _asigna_particion(conceptos, ruta):
-    """Partition PAR CONCEPT, figée dans ruta/particion_conceptos.csv pour qu'elle ne change pas avec de nouvelles données"""
     archivo = os.path.join(ruta, "particion_conceptos.csv")
     mapa = {}
     if os.path.exists(archivo):
@@ -157,15 +158,14 @@ def _asigna_particion(conceptos, ruta):
 
 
 def cargar_datos(ruta, G=None):
-    """Charge corpus/*.txt (sans la ligne de titre) et nuevas_desc.csv (concepto, definicion, fuente[, particion])."""
     if G is not None:
         fijar_grafo(G)
     filas = []
     for f in sorted(glob.glob(os.path.join(ruta, "corpus", "*.txt"))):
         concepto = _quita_u(os.path.basename(f))[:-4].strip().lower()
         lineas = [l.strip() for l in open(f, encoding="utf8").read().splitlines() if l.strip()]
-        if lineas and len(lineas[0].split()) == 1:      # La première ligne est le titre
-            concepto = lineas[0].strip().lower()        # comme la classe : le concept est le titre (Papas.txt -> « papa »)
+        if lineas and len(lineas[0].split()) == 1:
+            concepto = lineas[0].strip().lower()
             lineas = lineas[1:]
         filas += [dict(concepto=concepto, definicion=l, fuente="curso") for l in lineas]
     df = pd.DataFrame(filas)
@@ -201,7 +201,6 @@ def cargar_datos(ruta, G=None):
 
 
 def resumen(datos):
-    """Affiche et renvoie des statistiques du jeu d'évaluation (pour le rapport)"""
     r = {
         "descripciones": len(datos),
         "conceptos": datos["concepto"].nunique(),
@@ -222,7 +221,6 @@ def resumen(datos):
 
 # ----------------------------------------------------------------------------- évaluation
 def _subconjunto(datos, particion, excluir_mencion):
-    """Filtre les données par partition et/ou en excluant les descriptions qui mentionnent la cible"""
     d = datos if particion is None else datos[datos["particion"] == particion]
     if excluir_mencion:
         d = d[~d["menciona_objetivo"]]
@@ -233,22 +231,13 @@ def _candidatos(modelo, fila, topn):
     sem = set(fila["semillas"])
     try:
         cand = modelo(fila["definicion"]) or []
-    except Exception as e:                      # une erreur du modèle ne doit pas arrêter toute l'évaluation
+    except Exception as e:
         print("[evaluacion] erreur dans le modèle :", repr(e)[:100], "|", fila["definicion"][:50])
         cand = []
     return [w for w in cand if w not in sem][:topn]
 
 
 def evaluar(modelo, datos, particion="prueba", topn=TOPN, excluir_mencion=False):
-    """
-    Métriques d'un modèle. particion : "desarrollo", "prueba" ou None (toutes).
-    - p@k : proportion de descriptions dont le concept cible est parmi les k premiers candidats (k = 1, 3, 5).
-    - MRR : moyenne de 1/rang du concept cible (0 s'il n'apparaît pas dans les topn premiers).
-    - cobertura_modelo : proportion de descriptions pour lesquelles le modèle renvoie au moins un candidat.
-    - cobertura_lemas  : proportion de descriptions avec >= 1 lemme dans le graphe (ne dépend pas du modèle).
-    - lemas_medios     : nombre moyen de lemmes utiles par description.
-    Les mots de la description sont exclus des candidats ici même, comme conceptos() dans le cours.
-    """
     d = _subconjunto(datos, particion, excluir_mencion)
     n = len(d)
     if n == 0:
@@ -272,11 +261,6 @@ def evaluar(modelo, datos, particion="prueba", topn=TOPN, excluir_mencion=False)
 
 
 def tabla(modelos, datos, excluir_mencion_prueba=True, **kw):
-    """
-    modelos = {"nom": fonction}. Une ligne par modèle, avec développement et test.
-    Par défaut, en test on écarte les descriptions qui contiennent le mot cible (comme dans le README) ;
-    en développement on garde les 276 descriptions, comparables à la Tabla 1.
-    """
     filas = []
     for nombre, fn in modelos.items():
         fila = {"modelo": nombre}
@@ -288,7 +272,6 @@ def tabla(modelos, datos, excluir_mencion_prueba=True, **kw):
 
 
 def fallos(modelo, datos, particion="prueba", k=5, topn=TOPN):
-    """Descriptions où le concept cible n'est pas parmi les k premiers, pour l'analyse d'erreurs."""
     d = _subconjunto(datos, particion, False)
     filas = []
     for _, fila in d.iterrows():
