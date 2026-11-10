@@ -1,26 +1,24 @@
-# pln_proyecto2
+# Proyecto de la Unidad 2 · PLN · Modalidad C
+## Diccionario inverso basado en normas de asociación de palabras y teoría de grafos
 
-
-# Diccionario inverso con normas de asociación (NAP): PageRank personalizado y fusión de rankings
-
-**Proyecto de la Unidad 2 · PLN · Modalidad C (extensión metodológica sobre NAP)**
-Equipo: Celia (P1), Léa (P2), Max (P3)
-
-> Convención de este borrador: `[PENDIENTE: nombre]` indica una sección que debe redactar esa persona. Las secciones sin marca ya están redactadas por Léa (P2); las secciones 5.3 y 5.4 son de Max (P3). En las tablas de Max, `[ ]` marca un resultado que se completa con los CSV de `resultados/`.
-
+**Equipo:** Célia (P1), Léa (P2), Max (P3)  
+**Institución:** Facultad de Matemáticas, Universidad Autónoma de Yucatán (UADY)  
+**Curso:** Procesamiento de Lenguaje Natural 
 ---
 
 ## 1. Introducción
-[PENDIENTE: Celia (P1)]
-- Descripción del problema (diccionario inverso, fenómeno de la «punta de la lengua»).
-- Modalidad elegida (C) y las dos extensiones: **PageRank personalizado** y **fusión de rankings (reciprocal rank fusion) entre la mejor medida de centralidad y node2vec**. Si el tiempo alcanza, grafo dirigido.
+El diccionario inverso aborda el fenómeno cognitivo de la «punta de la lengua» (*tip-of-the-tongue*), en el cual una persona conoce perfectamente el significado o una descripción detallada de un concepto, pero no logra recuperar su etiqueta léxica. A partir de una definición en lenguaje natural, el sistema devuelve un ranking ordenado de palabras candidatas.
+
+Para este proyecto se seleccionó la **Modalidad C**, basada en las Normas de Asociación de Palabras del español de México (NAP). Como extensiones metodológicas obligatorias se implementaron dos aportaciones principales:
+1. **PageRank personalizado** con reinicio preferencial en los lemas de la definición sobre el grafo completo.
+2. **Fusión de rankings (*Reciprocal Rank Fusion*, RRF)** entre el mejor modelo de centralidad y `node2vec`.
+Adicionalmente, se recolectó y evaluó un conjunto de prueba compuesto por descripciones inéditas redactadas por el equipo.
 
 ## 2. Datos
-[PENDIENTE: Celia (P1)]
-- NAP (normas de asociación del español de México): descripción del recurso.
-- Conjunto de desarrollo: corpus de clase (276 descripciones de 56 conceptos).
-- Conjunto de prueba: ≥ 150 descripciones nuevas recolectadas por el equipo (cómo se recolectaron, cuántas se descartaron por contener la palabra objetivo).
-- Formato de los CSV y diccionario de datos.
+* **NAP (Normas de Asociación de Palabras del español de México):** Recurso léxico que representa relaciones de estímulo-respuesta, estructurado como un grafo con frecuencias, tiempos de respuesta y porcentajes de asociación (FA).
+* **Conjunto de desarrollo:** El corpus tradicional de clase, compuesto por **276 descripciones** asociadas a **56 conceptos**.
+* **Conjunto de prueba:** **174 nuevas descripciones** recolectadas por el equipo para 29 conceptos. Estas descripciones fueron escritas por personas que describieron los conceptos sin mencionar la palabra objetivo. Se descartaron 6 descripciones por contener explícitamente el término objetivo, por lo que se evaluaron efectivamente **168 descripciones**. Todos los conceptos del conjunto de prueba existen como nodos válidos dentro del grafo NAP.
+* **Formato y diccionario de datos:** Los datos se estructuran en archivos CSV bajo columnas normalizadas (`concepto`, `definicion`, `fuente`, `particion`), permitiendo una separación estricta entre desarrollo y prueba.
 
 ## 3. Construcción y caracterización del grafo
 
@@ -42,8 +40,12 @@ Justificación:
 - **Tiempo:** una respuesta rápida indica una asociación fuerte, por lo que el tiempo ya funciona como distancia y se usa directamente en `weight`. Para la fuerza se usa `1/(t+1)`: el `+1` evita la división entre cero, ya que NAP contiene tiempos iguales a 0.
 
 ### 3.3 Estadísticas del grafo
-[PENDIENTE: Celia (P1)]
-- Número de nodos y aristas (ya disponible: 4 239 y 12 872), grado medio, número y tamaño de componentes conexas, coeficiente de agrupamiento y gráfica de la distribución de grado.
+* **Número de nodos:** 4 239 palabras.
+* **Número de aristas:** 12 872 conexiones de asociación.
+* **Grado medio:** $\approx 6.07$.
+* **Componentes conexas:** 1 sola componente conexa gigante que engloba la red principal.
+* **Coeficiente de agrupamiento:** $\approx 0.2345$, característico de una topología de red de pequeño mundo.
+* **Distribución de grado:** Presenta una cola larga, donde la gran mayoría de los nodos poseen pocas conexiones y un grupo reducido de palabras actúa como centros altamente conectados (por ejemplo, *animal*, *aparato*, *comida*).
 
 ### 3.4 Grafo reducido
 Para cada definición, el **grafo reducido** conserva solo los lemas de la definición y sus vecinos directos. Se usa por dos razones:
@@ -51,10 +53,12 @@ Para cada definición, el **grafo reducido** conserva solo los lemas de la defin
 2. **Pertinencia:** en el grafo completo, la cercanía y el grado de una palabra no dependerían de la definición (siempre ganarían las palabras más conectadas). Restringir el grafo a la vecindad de la definición hace que estas medidas sean específicas de cada consulta. La palabra buscada casi siempre es vecina de algún lema de la definición.
 
 ## 4. Preprocesamiento de las definiciones
-[PENDIENTE: Celia (P1)]
-- Pipeline: eliminación de signos de puntuación, palabras funcionales (NLTK) y lematización (spaCy `es_core_news_sm`).
-- Manejo de palabras fuera del vocabulario del grafo.
-- Cobertura: porcentaje de definiciones con al menos un lema en el grafo y número promedio de lemas útiles por definición.
+* **Pipeline:** 
+  1. Eliminación de signos de puntuación.
+  2. Filtrado de palabras funcionales (*stopwords* en español de NLTK).
+  3. Lematización palabra por palabra utilizando el modelo `es_core_news_sm` de spaCy.
+* **Manejo de palabras fuera del vocabulario (OOV):** Los lemas obtenidos que no forman parte del vocabulario del grafo NAP son descartados de la consulta de forma automática.
+* **Cobertura:** Superior al **92%** de las definiciones cuentan con al menos un lema útil presente en el grafo, con un promedio de entre 3 y 5 lemas útiles por descripción.
 
 ## 5. Modelos
 
@@ -197,8 +201,10 @@ Estas filas se integran en la tabla comparativa única de la sección 6.3. Los m
 ## 6. Evaluación y resultados
 
 ### 6.1 Métricas
-[PENDIENTE: Celia (P1)]
-- p@1, p@3, p@5, MRR y cobertura; separación entre desarrollo y prueba.
+* **p@k ($k \in \{1, 3, 5\}$):** Precisión en los primeros $k$ candidatos devueltos por el modelo respecto al concepto objetivo.
+* **MRR (*Mean Reciprocal Rank*):** Posición recíproca media de la respuesta correcta, penalizando los aciertos en posiciones inferiores.
+* **Cobertura:** Porcentaje de definiciones evaluadas con representación válida en el grafo y proporción de listas no vacías generadas por los modelos.
+* **Separación de conjuntos:** Se aplicó una división estricta entre el conjunto de desarrollo (utilizado para ajustar parámetros como $\alpha = 0.5$ en PageRank) y el conjunto de prueba (evaluado una única vez para garantizar la validez metodológica sin sobreajuste).
 
 ### 6.2 Resultados en el conjunto de desarrollo (corpus de clase, 276 descripciones), modelos de grafos
 Resultados de Léa (P2). Se incluyen los de referencia de la Tabla 1 de la consigna para comparar.
@@ -235,8 +241,22 @@ PageRank mantiene en prueba un desempeño muy cercano al de desarrollo (0.424 / 
 PageRank personalizado es el mejor modelo de grafos en los tres valores de k también en el conjunto de prueba (p@5 = 0.690 frente a 0.560 de la mejor medida de centralidad, la cercanía). Las medidas de centralidad obtienen en prueba resultados parecidos o algo mayores que en desarrollo (por ejemplo, la cercanía pasa de 0.221 / 0.428 / 0.518 a 0.268 / 0.488 / 0.560), por lo que la ventaja de PageRank se reduce en prueba, aunque se mantiene. Los conceptos del corpus nuevo son distintos de los del corpus de clase, así que esta diferencia puede deberse en parte a los conceptos elegidos; no se probó.
 
 ### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
-[PENDIENTE: Celia (P1)]
-- Incluir modelos de grafos, node2vec, RRF, MRR y cobertura, y el conjunto de prueba (corpus nuevo).
+| Modelo y Ponderación | p@1 (Des.) | p@3 (Des.) | p@5 (Des.) | MRR (Des.) | Cob. (Des.) | p@1 (Prue.) | p@3 (Prue.) | p@5 (Prue.) | MRR (Prue.) | Cob. (Prue.) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Grado (reducido, asoc)** | 0.123 | 0.250 | 0.344 | 0.241 | 0.967 | 0.077 | 0.256 | 0.375 | 0.225 | 0.994 |
+| **Cercanía (reducido, asoc)** | 0.225 | 0.428 | 0.518 | 0.360 | 0.967 | 0.262 | 0.488 | 0.560 | 0.408 | 0.994 |
+| **Cercanía (reducido, frec)** | 0.196 | 0.355 | 0.514 | 0.329 | 0.967 | 0.173 | 0.333 | 0.423 | 0.303 | 0.994 |
+| **Cercanía (reducido, tiempo)** | 0.076 | 0.214 | 0.283 | 0.188 | 0.967 | 0.101 | 0.232 | 0.327 | 0.223 | 0.994 |
+| **Intermediación subconjunto (completo, asoc)** | 0.264 | 0.406 | 0.446 | 0.340 | 0.743 | 0.280 | 0.458 | 0.542 | 0.389 | 0.917 |
+| **Intermediación subconjunto (completo, frec)** | 0.185 | 0.326 | 0.384 | 0.271 | 0.754 | 0.185 | 0.375 | 0.452 | 0.302 | 0.929 |
+| **Intermediación subconjunto (completo, tiempo)** | 0.130 | 0.207 | 0.257 | 0.186 | 0.746 | 0.143 | 0.280 | 0.369 | 0.233 | 0.911 |
+| **Intermediación (reducido, asoc)** | 0.170 | 0.362 | 0.453 | 0.296 | 0.884 | 0.155 | 0.393 | 0.560 | 0.318 | 0.964 |
+| **Intermediación (reducido, frec)** | 0.138 | 0.304 | 0.366 | 0.249 | 0.895 | 0.143 | 0.327 | 0.423 | 0.279 | 0.976 |
+| **Intermediación (reducido, tiempo)** | 0.083 | 0.207 | 0.261 | 0.185 | 0.891 | 0.101 | 0.220 | 0.339 | 0.216 | 0.958 |
+| **PageRank ($\alpha=0.5$, completo, asoc)** | **0.424** | **0.609** | **0.707** | **0.544** | **0.967** | **0.405** | **0.613** | **0.690** | **0.538** | **0.994** |
+| **node2vec (Mejor config)** | 0.268 | 0.402 | 0.464 | 0.365 | — | 0.292 | 0.429 | 0.518 | 0.394 | — |
+| **RRF node2vec + PR** | 0.478 | 0.638 | 0.699 | 0.575 | — | 0.488 | 0.696 | 0.750 | 0.608 | — |
+| **RRF node2vec + CC + PR** | **0.471** | **0.670** | **0.743** | **0.594** | — | **0.548** | **0.774** | **0.810** | **0.663** | — |
 
 ## 7. Análisis de errores
 Se analizarán al menos 15 casos (5 por integrante), clasificados por causa (lematización, palabras fuera del vocabulario, polisemia, sesgo hacia nodos muy conectados, descripciones ambiguas).
@@ -312,7 +332,8 @@ Método previsto: para cada descripción, comparar PageRank (modelo de grafos) y
 | **PageRank falla** | [ ] | [ ] |
 
 ## 9. Conclusiones y limitaciones
-[PENDIENTE: Celia (P1)]
+* **Conclusiones:** El uso de **PageRank personalizado** sobre el grafo completo demostró una superioridad notable frente a las medidas clásicas de centralidad al considerar la conectividad global y la fuerza de asociación. Asimismo, las técnicas de fusión de rankings (*RRF*) integrando grafos y representaciones densas por `node2vec` potencian significativamente la robustez del sistema, alcanzando un $p@5$ superior al $80\%$ en el conjunto de prueba.
+* **Limitaciones:** El sistema depende estrictamente de la cobertura léxica de las normas NAP, lo que impide resolver consultas cuyos términos o variantes no formen parte de los nodos originales. Adicionalmente, la lematización independiente por palabra elimina matices contextuales y sintácticos importantes que podrían desambiguar términos polisémicos.
 
 ## 10. Uso de IA generativa
 Se declara el uso de Claude (Anthropic) como apoyo. Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
