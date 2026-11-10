@@ -1,27 +1,27 @@
-# Proyecto de la Unidad 2 · PLN · Modalidad C
-## Diccionario inverso basado en normas de asociación de palabras y teoría de grafos
+# pln_proyecto2
 
-**Equipo:** Célia (P1), Léa (P2), Max (P3)  
-**Institución:** Facultad de Matemáticas, Universidad Autónoma de Yucatán (UADY)  
-**Curso:** Procesamiento de Lenguaje Natural
+
+# Diccionario inverso con normas de asociación (NAP): PageRank personalizado y fusión de rankings
+
+**Proyecto de la Unidad 2 · PLN · Modalidad C (extensión metodológica sobre NAP)**
+Equipo: Celia (P1), Léa (P2), Max (P3)
+
+> Convención de este borrador: `[PENDIENTE: nombre]` indica una sección que debe redactar esa persona. Las secciones sin marca ya están redactadas por Léa (P2); las secciones 5.3 y 5.4 son de Max (P3). En las tablas de Max, `[ ]` marca un resultado que se completa con los CSV de `resultados/`.
 
 ---
 
 ## 1. Introducción
-- El problema consiste en la incapacidad temporal de recuperar una palabra cuyo significado o concepto se conoce perfectamente. El diccionario inverso resuelve este reto mapeando texto libre a una etiqueta léxica.  
-- Modalidad C :  Se utilizaron las Normas de Asociación de Palabras del español de México (NAP). Como contribución metodológica original (exigida en la Modalidad C), se implementaron dos extensiones clave:
-  - PageRank personalizado con reinicio preferencial en los lemas de la definición sobre el grafo completo.
-  - Fusión de rankings (Reciprocal Rank Fusion - RRF) entre el mejor modelo de centralidad y node2vec.
-  - Un conjunto de evaluación inédito de 174 descripciones nuevas recolectadas por el equipo.
+[PENDIENTE: Celia (P1)]
+- Descripción del problema (diccionario inverso, fenómeno de la «punta de la lengua»).
+- Modalidad elegida (C) y las dos extensiones: **PageRank personalizado** y **fusión de rankings (reciprocal rank fusion) entre la mejor medida de centralidad y node2vec**. Si el tiempo alcanza, grafo dirigido.
 
 ## 2. Datos
-El proyecto utiliza tres conjuntos de datos con propósitos estrictamente diferenciados para evitar el sobreajuste (*overfitting*):
+[PENDIENTE: Celia (P1)]
+- NAP (normas de asociación del español de México): descripción del recurso.
+- Conjunto de desarrollo: corpus de clase (276 descripciones de 56 conceptos).
+- Conjunto de prueba: ≥ 150 descripciones nuevas recolectadas por el equipo (cómo se recolectaron, cuántas se descartaron por contener la palabra objetivo).
+- Formato de los CSV y diccionario de datos.
 
-| Conjunto de datos | Descripción | Propósito |
-| :--- | :--- | :--- |
-| **NAP (`NAP.xls`)** | 4 239 nodos (palabras) y 12 872 aristas (asociaciones). Incluye frecuencia, tiempo de respuesta y porcentaje de asociación (FA). | La base de conocimientos del sistema (el grafo). |
-| **Corpus del curso (`corpus/`)** | 276 descripciones asociadas a 56 conceptos. | **Conjunto de desarrollo:** utilizado para ajustar hiperparámetros (como $\alpha = 0.5$ en PageRank). |
-| **Nuevas descripciones (`nuevas_desc.csv`)** | 174 descripciones recolectadas por el equipo (29 conceptos, 6 participantes reales sin uso de IA). | **Conjunto de test (prueba):** evaluado una única vez para obtener los resultados finales. *(Se descartaron 6 por contener la palabra objetivo, evaluando 168).* |
 ## 3. Construcción y caracterización del grafo
 
 ### 3.1 Grafo
@@ -42,8 +42,8 @@ Justificación:
 - **Tiempo:** una respuesta rápida indica una asociación fuerte, por lo que el tiempo ya funciona como distancia y se usa directamente en `weight`. Para la fuerza se usa `1/(t+1)`: el `+1` evita la división entre cero, ya que NAP contiene tiempos iguales a 0.
 
 ### 3.3 Estadísticas del grafo
-* **Estadísticas clave:** 4 239 nodos, 12 872 aristas, un grado medio de $\approx 6.07$, una única componente conexa gigante y un coeficiente de agrupamiento de $\approx 0.2345$ (red de pequeño mundo).
-* **Grafo reducido:** Para cada consulta, se restringe el grafo a los lemas de la definición y sus vecinos directos (mediana de $\approx 60$ nodos), reduciendo drásticamente el costo computacional y enfocando la especificidad de la consulta.
+[PENDIENTE: Celia (P1)]
+- Número de nodos y aristas (ya disponible: 4 239 y 12 872), grado medio, número y tamaño de componentes conexas, coeficiente de agrupamiento y gráfica de la distribución de grado.
 
 ### 3.4 Grafo reducido
 Para cada definición, el **grafo reducido** conserva solo los lemas de la definición y sus vecinos directos. Se usa por dos razones:
@@ -51,9 +51,10 @@ Para cada definición, el **grafo reducido** conserva solo los lemas de la defin
 2. **Pertinencia:** en el grafo completo, la cercanía y el grado de una palabra no dependerían de la definición (siempre ganarían las palabras más conectadas). Restringir el grafo a la vecindad de la definición hace que estas medidas sean específicas de cada consulta. La palabra buscada casi siempre es vecina de algún lema de la definición.
 
 ## 4. Preprocesamiento de las definiciones
-* **Pipeline de limpieza:** Eliminación de signos de puntuación, filtrado de palabras funcionales (*stopwords* de NLTK) y lematización mediante spaCy (`es_core_news_sm`)[cite: 1].
-* **Filtrado de seguridad:** Los lemas idénticos a la palabra objetivo se excluyen de la lista de candidatos[cite: 1], y las descripciones que revelan explícitamente el objetivo se omiten en la evaluación de prueba.
-* **Cobertura:** Superior al 92% de las descripciones poseen al menos un lema válido presente en el vocabulario del grafo.
+[PENDIENTE: Celia (P1)]
+- Pipeline: eliminación de signos de puntuación, palabras funcionales (NLTK) y lematización (spaCy `es_core_news_sm`).
+- Manejo de palabras fuera del vocabulario del grafo.
+- Cobertura: porcentaje de definiciones con al menos un lema en el grafo y número promedio de lemas útiles por definición.
 
 ## 5. Modelos
 
@@ -87,25 +88,117 @@ Implementación: `nx.pagerank(grafo, alpha=alpha, personalization=pers, weight="
 
 Se fijó **alpha = 0.5**. Entre 0.2 y 0.7 las diferencias son mínimas (con 276 descripciones, un acierto más o menos cambia p@1 en 0.0036), por lo que el modelo es poco sensible a `alpha` en ese rango y solo se degrada con valores altos (≥ 0.85), cuando el caminante se aleja demasiado de la definición y ganan las palabras muy conectadas. El valor se eligió con el conjunto de desarrollo y **no se modificó** tras evaluar el conjunto de prueba.
 
-### 5.3 node2vec
-[PENDIENTE: Max (P3)]
-- Entrenamiento sobre el grafo usando la fuerza `sim` como peso (no la distancia), semillas fijas, al menos 3 configuraciones de hiperparámetros (dimensión, p, q, longitud y número de caminatas), representación de la definición por suma vectorial (y variantes), similitud coseno.
+### 5.3 node2vec (P3)
 
-### 5.4 Fusión de rankings (extensión 2)
-[PENDIENTE: Max (P3)]
-- Reciprocal rank fusion entre el mejor modelo de grafo (PageRank personalizado) y el mejor modelo node2vec: `score(palabra) = Σ 1 / (k + rango)`.
+**Idea.** node2vec aprende un vector para cada palabra del grafo a partir de caminatas aleatorias: desde cada nodo se generan caminatas de longitud fija, se tratan como «oraciones» y se entrenan con word2vec (skip-gram con muestreo negativo, `gensim`). Las palabras que aparecen en contextos de caminata parecidos quedan con vectores cercanos. Los parámetros `p` y `q` regulan si la caminata tiende a volver atrás (`p` bajo) o a alejarse del nodo de partida (`q` bajo explora más lejos).
+
+**Peso de las aristas.** Se usa la fuerza `sim` (FA, frecuencia o `1/(t+1)`, según el grafo), nunca la distancia `weight`: con distancias, las asociaciones más fuertes serían las menos recorridas por las caminatas.
+
+**Entrenamiento.** Paquete `node2vec` sobre el grafo completo, con `workers=1`, `seed=42`, `window=10` y `min_count=1`. El entrenamiento no usa ninguna descripción, por lo que no hay fuga de información entre desarrollo y prueba: las descripciones de desarrollo solo sirven para elegir hiperparámetros. Con la semilla fija y un solo hilo, dos ejecuciones independientes producen los mismos vectores.
+
+**De la descripción a la lista de candidatos.**
+1. Preprocesamiento idéntico al de los demás modelos: se quita la puntuación y las palabras funcionales (NLTK) y se lematiza palabra por palabra con spaCy. Si spaCy devuelve un lema de varias palabras (mole → «mo él»), se separa, igual que en el código de Léa.
+2. Se conservan los lemas presentes en el grafo, cada uno una sola vez.
+3. El vector de la descripción es la **suma** de los vectores de sus lemas. Variantes: **promedio** y **suma ponderada por IDF**. El IDF se calcula solo con las descripciones de desarrollo; un lema que no aparece en ellas recibe el IDF máximo.
+4. Los candidatos son las palabras más cercanas por **similitud coseno** (hasta 100), sin los lemas de la descripción y con similitud mayor que cero.
+
+La suma y el promedio dan exactamente el mismo ranking, porque el coseno no depende de la longitud del vector; solo la suma con IDF puede diferir.
+
+**Exploración de hiperparámetros.** Se parte de una configuración de referencia y se cambia **una sola variable a la vez**, de modo que cada diferencia se atribuye a un único cambio. Cada configuración se evalúa en el conjunto de desarrollo y se elige por MRR; el conjunto de prueba no interviene en ninguna elección.
+
+| Variable | Valores probados | Referencia |
+|---|---|---|
+| Dimensión | 64, 300 | 128 |
+| `p` | 0.5, 2 | 1 |
+| `q` | 0.5, 2 | 1 |
+| Longitud de caminata | 30 | 80 |
+| Caminatas por nodo | 20 | 10 |
+
+Son 9 configuraciones (la de referencia y 8 variantes). Además, antes de explorar hiperparámetros, se compara la **ponderación** (grafos de asociación, frecuencia y tiempo) con la configuración de referencia, y los hiperparámetros se exploran después sobre el grafo ganador.
+
+*Efecto de la ponderación (configuración de referencia, desarrollo)*
+
+| Grafo | p@1 | p@3 | p@5 | MRR |
+|---|---|---|---|---|
+| Asociación | 0.192 | 0.297 | 0.377 | 0.283 |
+| Frecuencia | 0.174 | 0.301 | 0.355 | 0.265 |
+| Tiempo | 0.138 | 0.232 | 0.279 | 0.212 |
+
+*Hiperparámetros (grafo de asociación, desarrollo)*
+
+| Configuración | Dim. | `p` | `q` | Long. | Caminatas | p@1 | p@3 | p@5 | MRR |
+|---|---|---|---|---|---|---|---|---|---|
+| Referencia | 128 | 1 | 1 | 80 | 10 | 0.192 | 0.297 | 0.377 | 0.283 |
+| Dimensión 64 | 64 | 1 | 1 | 80 | 10 | 0.261 | 0.402 | 0.475 | 0.358 |
+| Dimensión 300 | 300 | 1 | 1 | 80 | 10 | 0.109 | 0.225 | 0.286 | 0.199 |
+| `p` = 0.5 | 128 | 0.5 | 1 | 80 | 10 | 0.174 | 0.283 | 0.341 | 0.265 |
+| `p` = 2 | 128 | 2 | 1 | 80 | 10 | 0.134 | 0.239 | 0.315 | 0.228 |
+| `q` = 0.5 | 128 | 1 | 0.5 | 80 | 10 | 0.163 | 0.290 | 0.359 | 0.256 |
+| `q` = 2 | 128 | 1 | 2 | 80 | 10 | 0.127 | 0.254 | 0.351 | 0.230 |
+| Longitud 30 | 128 | 1 | 1 | 30 | 10 | 0.051 | 0.080 | 0.120 | 0.103 |
+| Caminatas 20 **(elegida)** | 128 | 1 | 1 | 80 | 20 | 0.268 | 0.402 | 0.464 | 0.365 |
+
+Configuración elegida (mejor MRR en desarrollo): **128 dimensiones, `p` = 1, `q` = 1, caminatas de longitud 80 y 20 caminatas por nodo** (MRR 0.365).
+
+*Representación de la descripción (configuración elegida, desarrollo)*
+
+| Modo | p@1 | p@3 | p@5 | MRR |
+|---|---|---|---|---|
+| Suma | 0.268 | 0.402 | 0.464 | 0.365 |
+| Promedio | 0.268 | 0.402 | 0.464 | 0.365 |
+| Suma ponderada por IDF | 0.272 | 0.402 | 0.453 | 0.363 |
+
+**Lectura de los resultados (desarrollo).**
+- **Ponderación.** Asociación > frecuencia > tiempo, el mismo orden que obtuvo PageRank (sección 8, pregunta 3). La diferencia entre asociación y frecuencia es pequeña (MRR 0.283 frente a 0.265); el tiempo es claramente peor (0.212).
+- **Hiperparámetros.** Solo dos cambios mejoran la referencia (MRR 0.283): **20 caminatas por nodo** (0.365) y **dimensión 64** (0.358). En cambio, **dimensión 300** (0.199) y sobre todo **caminatas de longitud 30** (0.103, p@1 = 0.051) la empeoran mucho, y alejar `p` o `q` de 1 en cualquier sentido también baja el MRR. Una explicación plausible, **no verificada**, es que el grafo es pequeño (4 239 nodos y grado medio cercano a 6): con pocas caminatas o caminatas cortas hay poco contexto por nodo, y 300 dimensiones son demasiadas para tan pocos datos. Como cada variable se cambió por separado, **no se probó la combinación** (por ejemplo, dimensión 64 con 20 caminatas), que podría mejorar más. Las diferencias entre las dos mejores configuraciones (0.365 y 0.358) son de pocas descripciones sobre 276.
+- **Representación de la descripción.** Suma y promedio son idénticas (el coseno no depende de la longitud del vector). La suma con IDF cambia p@1 (0.272 frente a 0.268) pero baja p@5 (0.453 frente a 0.464) y el MRR (0.363 frente a 0.365), por lo que se conservó la suma simple.
+- node2vec solo queda muy por debajo de PageRank en desarrollo (p@1 0.268 frente a 0.424): por sí solo no compite con el mejor modelo de grafos, y su interés está en la fusión (sección 5.4).
+
+**Cómo reproducir estas tablas.** Dependencias: `pip install node2vec gensim networkx xlrd spacy nltk pandas` y `python -m spacy download es_core_news_sm`. En una misma carpeta: `NAP.xls`, `nuevas_desc.csv`, `corpus/`, `evaluacion.py`, `grafos_lea.py` (grafos y modelos de Léa), `node2vec_nap.py` y `paso_a_paso.py`. Cada etapa guarda su tabla en `resultados/`.
+
+| Comando | Tabla |
+|---|---|
+| `python paso_a_paso.py 1` | ponderación (`etapa1_grafos.csv`) |
+| `python paso_a_paso.py 2 --grafo <grafo>` | hiperparámetros (`etapa2_configuraciones_<grafo>.csv`) y guarda la mejor configuración |
+| `python paso_a_paso.py 3 --grafo <grafo>` | suma, promedio e IDF (`etapa3_modos_<grafo>.csv`) |
+
+Las etapas 1 a 3 solo evalúan el conjunto de desarrollo.
+
+### 5.4 Fusión de rankings (extensión 2, P3)
+Se usa *reciprocal rank fusion*: `score(palabra) = Σ 1 / (k + rango)`, con el rango contado desde 1, sumando sobre los modelos cuya lista contiene la palabra, y `k = 60` (valor habitual; no se ajustó). Cada modelo aporta hasta 100 candidatos; la lista fusionada se ordena por puntaje y se corta a 100. Todos los modelos de una fusión usan el mismo grafo de ponderación, para que la comparación no mezcle dos efectos.
+
+| Fusión | Componentes | Para qué sirve |
+|---|---|---|
+| RRF node2vec + PR | node2vec (mejor configuración) y PageRank personalizado (alpha 0.5) | mejor modelo de grafos + node2vec, como pide la consigna |
+| RRF node2vec + CC + PR | lo anterior y cercanía en grafo reducido | fusión de tres modelos |
+| RRF PR + CC | PageRank y cercanía, **sin** node2vec | control: separa el efecto de node2vec del efecto de fusionar dos modelos de grafos |
+
+Se eligió la cercanía en grafo reducido como medida de centralidad porque es la que obtiene mejor p@5 entre las centralidades (sección 6.2) y produce listas largas (sección 8, pregunta 2), a diferencia de la intermediación por subconjunto, cuyas listas tienen unos 4 o 5 candidatos y aportarían poco a la fusión.
+
+*Fusiones (desarrollo y prueba)*
+
+| Modelo | p@1 (des.) | p@3 (des.) | p@5 (des.) | MRR (des.) | p@1 (prueba) | p@3 (prueba) | p@5 (prueba) | MRR (prueba) |
+|---|---|---|---|---|---|---|---|---|
+| node2vec | 0.268 | 0.402 | 0.464 | 0.365 | 0.292 | 0.429 | 0.518 | 0.394 |
+| PageRank | 0.424 | 0.609 | 0.707 | 0.544 | 0.405 | 0.613 | 0.690 | 0.538 |
+| Cercanía (reducido) | 0.225 | 0.428 | 0.518 | 0.360 | 0.262 | 0.488 | 0.560 | 0.408 |
+| RRF node2vec + PR | 0.478 | 0.638 | 0.699 | 0.575 | 0.488 | 0.696 | 0.750 | 0.608 |
+| RRF node2vec + CC + PR | 0.471 | 0.670 | 0.743 | 0.594 | 0.548 | 0.774 | 0.810 | 0.663 |
+| RRF PR + CC (sin node2vec) | 0.344 | 0.594 | 0.692 | 0.495 | 0.387 | 0.595 | 0.720 | 0.529 |
+
+Estas filas se integran en la tabla comparativa única de la sección 6.3. Los modelos y la configuración de node2vec se fijaron con el conjunto de desarrollo (`python paso_a_paso.py 4 --grafo <grafo>`). El conjunto de prueba se evaluó **una sola vez** (`python paso_a_paso.py 7 --grafo <grafo>`), con `evaluacion.tabla`, que excluye en prueba las descripciones que contienen la palabra objetivo.
+
+**Interpretación.** *Desarrollo (276 descripciones).* node2vec solo (MRR 0.365) queda muy por debajo de PageRank (0.544), pero la fusión de ambos mejora: RRF node2vec + PR sube p@1 de 0.424 a 0.478 y el MRR de 0.544 a 0.575, aunque p@5 baja ligeramente (0.707 a 0.699, unas 2 descripciones). El control PR + CC muestra que la mejora no se debe solo a fusionar dos modelos: **sin node2vec, la fusión empeora a PageRank** (p@1 0.344, MRR 0.495), mientras que con node2vec lo mejora. La fusión de tres modelos obtiene el mejor MRR (0.594) y el mejor p@5 (0.743).
+
+*Prueba (168 descripciones, una sola ejecución).* El orden se mantiene: RRF node2vec + CC + PR es el mejor (0.548 / 0.774 / 0.810, MRR 0.663), seguido de RRF node2vec + PR (0.488 / 0.696 / 0.750) y de PageRank (0.405 / 0.613 / 0.690). La fusión de tres modelos supera a PageRank en +14 puntos en p@1 y +12 en p@5. Con p@5 = 0.810 (136 de 168 descripciones) supera el umbral de 0.8; el margen es de unas 2 descripciones, y en desarrollo el mismo modelo obtiene 0.743.
+
+*Precauciones.* Cada descripción pesa 0.006 en prueba y 0.004 en desarrollo, por lo que diferencias de uno o dos puntos entre modelos cercanos no son concluyentes. Las medidas de grafos y node2vec obtienen en prueba valores parecidos o algo mayores que en desarrollo (por ejemplo, node2vec pasa de 0.268 a 0.292 en p@1); como en la sección 6.2b, los conceptos del corpus nuevo son distintos y no se probó si esa diferencia se debe a ellos. El modelo final se eligió por MRR en desarrollo, y el resultado en prueba lo confirma, sin haberlo usado para elegir.
 
 ## 6. Evaluación y resultados
 
 ### 6.1 Métricas
-* **Métricas utilizadas:** $p@1, p@3, p@5$ (precisión en los primeros $k$ puestos), $MRR$ (Mean Reciprocal Rank) y cobertura[cite: 1].
-
-| Modelo | Desarrollo ($p@1$ / $p@3$ / $p@5$) | Prueba / Test ($p@1$ / $p@3$ / $p@5$) |
-| :--- | :--- | :--- |
-| **PageRank Personalizado ($\alpha = 0.5$)** | **0.424 / 0.609 / 0.707**[cite: 1] | **0.405 / 0.613 / 0.690**[cite: 1] |
-| **Cercanía (grafo reducido)** | 0.221 / 0.428 / 0.518[cite: 1, 2] | 0.268 / 0.488 / 0.560[cite: 1] |
-| **Intermediación por subconjunto** | 0.264 / 0.406 / 0.446[cite: 1, 2] | 0.280 / 0.458 / 0.542[cite: 1] |
-| **Grado (grafo reducido)** | 0.116 / 0.250 / 0.330[cite: 1, 2] | 0.101 / 0.250 / 0.363[cite: 1] |
+[PENDIENTE: Celia (P1)]
+- p@1, p@3, p@5, MRR y cobertura; separación entre desarrollo y prueba.
 
 ### 6.2 Resultados en el conjunto de desarrollo (corpus de clase, 276 descripciones), modelos de grafos
 Resultados de Léa (P2). Se incluyen los de referencia de la Tabla 1 de la consigna para comparar.
@@ -142,17 +235,8 @@ PageRank mantiene en prueba un desempeño muy cercano al de desarrollo (0.424 / 
 PageRank personalizado es el mejor modelo de grafos en los tres valores de k también en el conjunto de prueba (p@5 = 0.690 frente a 0.560 de la mejor medida de centralidad, la cercanía). Las medidas de centralidad obtienen en prueba resultados parecidos o algo mayores que en desarrollo (por ejemplo, la cercanía pasa de 0.221 / 0.428 / 0.518 a 0.268 / 0.488 / 0.560), por lo que la ventaja de PageRank se reduce en prueba, aunque se mantiene. Los conceptos del corpus nuevo son distintos de los del corpus de clase, así que esta diferencia puede deberse en parte a los conceptos elegidos; no se probó.
 
 ### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
-Evaluación separada en el conjunto de desarrollo (corpus de clase, 276 descripciones) y en el conjunto de prueba (corpus nuevo del equipo, 168 descripciones válidas).
-
-| Modelo | Graphe / Ponderación | p@1 (Des.) | p@3 (Des.) | p@5 (Des.) | p@1 (Prueba) | p@3 (Prueba) | p@5 (Prueba) |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Grado** | Reducido / Asociación | 0.116 | 0.250 | 0.330 | 0.101 | 0.250 | 0.363 |
-| **Cercanía** | Reducido / Asociación | 0.221 | 0.428 | 0.518 | 0.268 | 0.488 | 0.560 |
-| **Intermediación subconjunto** | Completo / Asociación | 0.264 | 0.406 | 0.446 | 0.280 | 0.458 | 0.542 |
-| **Intermediación** | Reducido / Asociación | 0.167 | 0.362 | 0.449 | 0.155 | 0.399 | 0.554 |
-| **PageRank Personalizado ($\alpha=0.5$)** | Completo / Asociación | **0.424** | **0.609** | **0.707** | **0.405** | **0.613** | **0.690** |
-| **node2vec (Mejor config)** | — | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* |
-| **Fusión RRF (node2vec + PageRank)** | — | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* | *[Ver CSV]* |
+[PENDIENTE: Celia (P1)]
+- Incluir modelos de grafos, node2vec, RRF, MRR y cobertura, y el conjunto de prueba (corpus nuevo).
 
 ## 7. Análisis de errores
 Se analizarán al menos 15 casos (5 por integrante), clasificados por causa (lematización, palabras fuera del vocabulario, polisemia, sesgo hacia nodos muy conectados, descripciones ambiguas).
@@ -177,14 +261,16 @@ Caso adicional: borrego, «animal que produce lana» (posición 27, top 5: hipop
 5. **Casi aciertos.** En varios errores el concepto aparece cerca del top 5 (posiciones 6 a 12), o el modelo devuelve una variante (en «aspiradora», «aspirador»), por lo que p@5 subestima en parte la utilidad del sistema.
 
 Mejoras posibles, **no aplicadas** para mantener la comparabilidad con el pipeline de clase y la Tabla 1: pasar a minúsculas antes de filtrar palabras funcionales y lematizar la frase completa (con contexto) en lugar de palabra por palabra.
-- Casos de Celia (P1):
-* **Causas principales de fallo identificadas:**
-  1. *Lematización imperfecta:* Errores puntuales de spaCy en formas derivadas o flexiones no normalizadas.
-  2. *Nodos ultra-conectados:* Términos genéricos (*animal*, *aparato*) que actúan como sumideros y desvían el PageRank hacia conceptos generales.
-  3. *Polisemia y ambigüedad:* Definiciones excesivamente vagas o términos con múltiples acepciones en un mismo nodo del grafo.
-  4. *Ausencia en vocabulario (OOV):* Conceptos como *aspiradora* o *playera* ausentes en los nodos originales de NAP.
+- Casos de Celia (P1): [PENDIENTE: Celia (P1)]
+- Casos de Max (P3): RRF node2vec + PageRank (mejor configuración de node2vec, grafo de asociación), conjunto de desarrollo. El modelo falla (el concepto no está en el top 5) en **83 de las 276 descripciones** (`python paso_a_paso.py 6 --grafo asoc`, que usa `--modelo rrf2` por defecto). De esos 83: 21 son casi aciertos (posiciones 6 a 10), 11 no encuentran el concepto en las 100 primeras posiciones aunque tienen lemas, 10 no tienen ningún lema en el grafo, y 9 son descripciones de un concepto que ni siquiera es nodo del grafo (*aspiradora*, 5; *playera*, 4), por lo que no pueden acertar. Además, 6 descripciones de animales (*borrego*, *caballo*, *cochino*, *guajolote*) devuelven exactamente el mismo top 5 (hipopótamo, jirafa, león, tigre, cebra), porque solo les sobrevive el lema «animal».
 
-- Casos de Max (P3): [PENDIENTE: Max (P3)]
+| # | Concepto | Descripción | Lemas | Posición | Top 5 | Causa |
+|---|---|---|---|---|---|---|
+| 1 | plátano | «Mono» | mono | 10 | changar, chimpancé, primate, selva, banana | **Descripción de una sola palabra y casi acierto por sinónimo.** «mono» solo evoca a los primates. El concepto queda en el lugar 10 y **«banana», sinónimo de plátano, aparece en el top 5**, por lo que p@5 subestima la utilidad del sistema. |
+| 2 | caballo | «animal que relincha» | animal | 46 | hipopótamo, jirafa, león, tigre, cebra | **Nodo genérico y palabra fuera del vocabulario.** «relinchar» no está en el grafo y solo sobrevive «animal», cuyos vecinos son animales muy conectados. Es el patrón más repetido (6 descripciones con el mismo top 5). |
+| 3 | aspiradora | «Escoba eléctrica» | escoba, eléctrico | no aparece | barrer, cepillo_de_dientes, limpieza, trapeador, recogedor | **Concepto fuera del grafo (variante léxica).** «aspiradora» no es un nodo; sí lo es «aspirador», que otras descripciones de este concepto sí devuelven. No es un fallo del modelo sino del conjunto de evaluación; afecta a las 5 descripciones de *aspiradora* y a las 4 de *playera*. |
+| 4 | queso | «Amarillo y con agujeros» | amarillo | 8 | pollito, plátano, elote, mantequilla, potasio | **Palabra fuera del vocabulario y atributo genérico.** «agujero» no está en el grafo, y el único lema, «amarillo», arrastra a cosas amarillas (pollito, plátano, elote) sin relación con el queso. |
+| 5 | cebra | «Burro» | burro | 54 | asno, carga, politécnico, rebuznar, tonto | **Polisemia.** «burro» tiene varios sentidos (el animal, «tonto» y, por «politécnico», otro uso). El modelo devuelve los vecinos de la palabra, no el concepto que se describe con ella. |
 
 ## 8. Discusión
 
@@ -215,15 +301,67 @@ La intermediación devuelve en promedio solo 4 o 5 candidatos, y más de la mita
 - **Influencia de la transformación:** en los modelos de caminos más cortos, `100 − FA` y `1/f` determinan qué caminos se consideran «cortos»; otra transformación (por ejemplo `−log p`) cambiaría los caminos y, por tanto, los puntajes. En PageRank y node2vec se usa directamente la fuerza `sim`, sin transformar.
 - Todos los resultados de PageRank se obtuvieron con alpha = 0.5.
 
-### Otras preguntas guía
-[PENDIENTE: Celia (P1) o Max (P3), una pregunta más de la lista, por ejemplo la 5: ¿en qué definiciones gana el grafo y en cuáles node2vec?]
+### Pregunta 5. ¿En qué tipo de definiciones gana el modelo de grafos y en cuáles gana node2vec? (P3)
+[PENDIENTE: Max (P3)]
 
+Método previsto: para cada descripción, comparar PageRank (modelo de grafos) y node2vec según si el concepto queda o no en el top 5, y contar los casos en que acierta solo uno, ambos o ninguno. Después, separar por número de lemas útiles y por tipo de descripción (corta, con palabras genéricas, ambigua).
+
+| | node2vec acierta (top 5) | node2vec falla |
+|---|---|---|
+| **PageRank acierta (top 5)** | [ ] | [ ] |
+| **PageRank falla** | [ ] | [ ] |
 
 ## 9. Conclusiones y limitaciones
 [PENDIENTE: Celia (P1)]
 
 ## 10. Uso de IA generativa
 Se declara el uso de Claude (Anthropic) como apoyo. Las descripciones del conjunto de prueba fueron escritas por personas; no se usó IA para simular participantes ni para fabricar normas o respuestas.
+En la parte de node2vec (P3), Claude ayudó a reescribir los scripts `node2vec_nap.py` y `paso_a_paso.py` y a pasar el notebook de grafos a `grafos_lea.py`; todos los resultados se obtienen ejecutando ese código.
+
+
+
+
+# Répartition en trois personnes
+## Célia : données, évaluation, rapport
+Jour 1 : créer le dépôt, le dossier partagé et la structure ci-dessus. Définir le format nuevas_desc.csv (concepto, definicion, fuente, particion) et le partager.
+
+Jour 1 : lancer la collecte des 150 descriptions (tout le monde y participe, voir plus bas).
+
+Jour 1-2 : écrire evaluacion.py : evaluar(modelo, datos) qui retourne p@1/3/5, MRR et couverture (% de définitions avec au moins un lemme dans le graphe, nombre moyen de lemmes utiles). Corriger le lineas[1:] pour exclure le nom du concept. Livrer cette fonction en premier, les deux autres en ont besoin.
+
+Jour 2 : exclure ou signaler les descriptions qui contiennent le mot cible. Vérifier que chaque concept cible existe comme nœud du graphe.
+
+Jour 2-3 : statistiques du graphe : nœuds, arêtes, degré moyen, composantes connexes, coefficient de regroupement, graphique de la distribution des degrés.
+
+Jour 4-5 : tableau comparatif unique (tous les modèles et pondérations + lignes du Tableau 1), puis rapport et structure de la présentation.
+
+## Léa : modèles de graphes + PageRank
+Jour 1 : réécrire Construye_Grafo pour qu’il charge NAP.xls une seule fois et stocke deux attributs par arête : dist (pour les chemins : 1/frec, tiempo, 100-FA) et sim (la force, utilisée par PageRank et node2vec : frec, FA...). Justifier la transformation similarité → distance par écrit.
+
+Jour 1-2 : nettoyer et refactoriser les 3 centralités sous la forme modelo(definicion), en graphe complet et réduit.
+
+Jour 2-3 : PageRank personnalisé : nx.pagerank(G, personalization={lema: 1 ...}, weight="sim") sur le graphe complet. Régler alpha (probabilité de continuer à marcher, par exemple 0,5 à 0,9) sur le jeu de dév. Exclure les mots de la définition, comme dans conceptos().
+
+Jour 3-4 : lancer toutes les évaluations sur dév puis test.
+
+Jour 4 (si le temps le permet) : graphe orienté (nx.DiGraph, arête estimulo → respuesta), comparer avec le non orienté.
+
+Jour 5 : répondre aux questions de discussion sur la pondération et sur « proximité contre intermédiarité ».
+
+## Maximilien : node2vec, fusion, démo
+
+Jour 1-2 : refaire l’entraînement node2vec avec les poids sim (c’est un point critique : avec les distances, les associations fortes sont les moins parcourues). Fixer seed et workers=1 pour la reproductibilité.
+
+Jour 2-3 : au moins 3 configurations (par exemple dimension 64/128/300, p et q valant 0,5/1/2, longueur de marche 30/80, nombre de marches 10/20), tableau des résultats sur dév. Comparer somme, moyenne et somme pondérée IDF des vecteurs.
+
+Jour 3-4 : RRF : score[mot] += 1/(60+rang) sur la liste du meilleur modèle de graphe (probablement proximité, graphe réduit, association) et sur celle du meilleur node2vec. Tester aussi une fusion à trois (avec PageRank).
+
+Jour 4-5 : analyse « quand gagne node2vec ou le graphe ? » (question 5).
+
+Jour 5-6 : démo en direct (même simple : une cellule input() qui affiche le top 5). Gradio vaut +3 points si vous avez le temps.
+
+Tout le monde
+Jour 1-2 : ≈ 50 descriptions chacun, écrites par des proches qui ne connaissent pas le mot et sans le nommer. Pas de LLM pour les générer ni pour simuler des participants.
 
 Jour 5 : chacun analyse 5 cas d’erreur, classés par cause (lemmatisation, hors vocabulaire, polysémie, nœuds très connectés, description ambiguë).
 
