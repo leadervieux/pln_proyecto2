@@ -102,9 +102,13 @@ def limpia_lematiza(cadena):
     for c in string.punctuation:
         cadena = cadena.replace(c, "")
     cadena = cadena.strip()
+    
     for palabra in cadena.split():
-        if palabra not in stop:
-            limpiado += _lema(palabra) + " "
+        palabra_lower = palabra.lower() # On passe en minuscule tout de suite
+        
+        if palabra_lower not in stop: # On compare avec la liste des stop-words
+            limpiado += _lema(palabra_lower) + " " # On lemmatise la version en minuscules
+            
     return limpiado
 
 
