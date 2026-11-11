@@ -3,6 +3,7 @@ paso_a_paso.py - Expériences de Max (node2vec + fusion RRF), dans l'ordre.
 
 Dossier de travail : NAP.xls, nuevas_desc.csv, corpus/, evaluacion.py, grafos_lea.py, node2vec_nap.py
 
+    python paso_a_paso_2.py                 #Genere les résultat sur les graphes de léa
     python paso_a_paso.py 1                 # même config sur les 3 graphes (asoc, frec, tiempo) : quelle force ?
     python paso_a_paso.py 2 --grafo asoc    # une variable à la fois ; enregistre la meilleure config (long)
     python paso_a_paso.py 3 --grafo asoc    # somme / moyenne / IDF avec la meilleure config
@@ -26,7 +27,7 @@ import evaluacion as ev
 import grafos_lea as gl
 import node2vec_nap_2 as n2
 
-RES = os.path.join(n2.DIRECTORIO, "resultados")
+RES = os.path.join(n2.DIRECTORIO, "resultados_2")
 os.makedirs(RES, exist_ok=True)
 
 CLAVES_MODELO = {          # clé en ligne de commande -> nom dans les tableaux
@@ -94,11 +95,12 @@ def construir_modelos(grafos, datos, grafo):
     """Tous les modèles sur le MÊME graphe : node2vec (meilleure config), PageRank, proximité, fusions RRF."""
     mejor = cargar_mejor(grafo)
     G = grafos[grafo]
-    wv = n2.entrena_node2vec(G, grafo, weight_key="sim", **mejor["cfg"])
+    wv = n2.entrena_node2vec(G, grafo, weight_key="sim", dimensions=64, walk_length=80, num_walks=20, p=1.0, q=1.0)
     idf = n2.idf_dev(datos) if mejor["modo"] == "idf" else None
     m_n2v = n2.crea_modelo(wv, mejor["modo"], idf)
     m_pr = gl.crea_modelo(gl.diccionario_pr, G, alpha=gl.ALPHA_PR)
     m_cc = gl.crea_modelo(gl.diccionario_cc, G)
+    m_btc = gl.crea_modelo(gl.diccionario_btc, G)
     return {
         CLAVES_MODELO["node2vec"]: m_n2v,
         CLAVES_MODELO["pr"]: m_pr,
@@ -106,10 +108,53 @@ def construir_modelos(grafos, datos, grafo):
         CLAVES_MODELO["rrf2"]: n2.modelo_rrf([m_n2v, m_pr]),
         CLAVES_MODELO["rrf3"]: n2.modelo_rrf([m_n2v, m_cc, m_pr]),
         CLAVES_MODELO["rrfg"]: n2.modelo_rrf([m_cc, m_pr]),
+        "rff4" : n2.modelo_rrf([m_n2v, m_btc, m_pr]), 
+        "node cc pr" : n2.modelo_rrf([m_n2v, m_cc, m_pr]),
+    }
+
+def construir_modelos2(grafos, datos, grafo):
+    G = grafos[grafo]
+    m_btc = gl.crea_modelo(gl.diccionario_btc, G)
+    m_btc_r = gl.crea_modelo(gl.diccionario_btc_reducido, G)
+    m_dc = gl.crea_modelo(gl.diccionario_dc, G)
+
+    return {
+        "btc": m_btc, 
+        "btc_r": m_btc_r, 
+        "m_dc" : m_dc,
+    }
+
+def construir_modelos_Lea(grafos) : 
+    m_btc = gl.crea_modelo(gl.diccionario_btc, grafos)
+    m_btc_r = gl.crea_modelo(gl.diccionario_btc_reducido, grafos)
+    m_dc = gl.crea_modelo(gl.diccionario_dc, grafos)
+    m_pr = gl.crea_modelo(gl.diccionario_pr, grafos, alpha=gl.ALPHA_PR)
+    m_cc = gl.crea_modelo(gl.diccionario_cc, grafos)
+    return {
+        "btc": m_btc, 
+        "btc_r": m_btc_r, 
+        "dc" : m_dc, 
+        "pr" : m_pr, 
+        "cc" : m_cc      
     }
 
 
+
 # ------------------------------------------------------------------ étapes
+def etapa_0(grafos, datos, args) :
+    filas = []
+    for nombre_G, G in grafos.items() :
+
+        modelos = construir_modelos_Lea(G)
+
+        for nombre, fn in modelos.items():
+            filas.append({"modelo": nombre, "grafo":nombre_G, **n2.evaluar_dev(fn, datos)})
+            print(nombre, {k: round(v, 3) for k, v in filas[-1].items() if k in ("p@1", "p@3", "p@5", "MRR")})
+            tabla = pd.DataFrame(filas)
+            print("\n" + tabla.to_string())
+    guardar(tabla, f"etapa4_rrf_dev_{args.grafo}.csv")
+
+
 def etapa_1(grafos, datos, args):
     """Même configuration (CONFIG_REF) sur les trois graphes : quelle force (asoc, frec, tiempo) pour node2vec ?
     Compare avec ton ancien résultat (poids 1/frecuencia : p@1 4,5 % ... p@10 12,7 %)."""
@@ -132,8 +177,7 @@ def etapa_2(grafos, datos, args):
 
 def etapa_3(grafos, datos, args):
     """Somme / moyenne / IDF avec la meilleure config de l'étape 2."""
-    mejor = cargar_mejor(args.grafo)
-    wv = n2.entrena_node2vec(grafos[args.grafo], args.grafo, weight_key="sim", **mejor["cfg"])
+    wv = n2.entrena_node2vec(grafos[args.grafo], args.grafo, weight_key="sim", dimensions=64, walk_length=80, num_walks=20, p=1.0, q=1.0)
     tabla = n2.comparar_modos(wv, datos)
     print("\n" + tabla.to_string())
     modo = tabla.loc[mejor_indice(tabla), "modo"]
@@ -177,6 +221,26 @@ def etapa_6(grafos, datos, args):
     guardar(tabla, f"fallos_{args.modelo}_{args.grafo}.csv")
     print("Remplis la colonne causa_manual (lematización, fuera del vocabulario, polisemia, nodo muy conectado, ambigua).")
 
+    #Pour node2vec seulement
+    mejor = cargar_mejor(args.grafo)
+    G = grafos[args.grafo]
+
+    wv = n2.entrena_node2vec(G, args.grafo, weight_key="sim", dimensions=64, walk_length=80, num_walks=20, p=1.0, q=1.0)
+    idf = n2.idf_dev(datos) if mejor["modo"] == "idf" else None
+    m_n2v = n2.crea_modelo(wv, mejor["modo"], idf) 
+    tabla = ev.fallos(m_n2v, datos, particion="desarrollo", k=5)
+    print(f"Node2vec : {len(tabla)} échecs sur le dév")
+    print(tabla.head(15).to_string())
+    guardar(tabla, f"fallos_Node2vec_{args.grafo}.csv")
+    print("Remplis la colonne causa_manual (lematización, fuera del vocabulario, polisemia, nodo muy conectado, ambigua).")
+
+    #Pour PageRank seulement
+    m_pr = gl.crea_modelo(gl.diccionario_pr, G, alpha=gl.ALPHA_PR)
+    tabla = ev.fallos(m_pr, datos, particion="desarrollo", k=5)
+    print(f"PR : {len(tabla)} échecs sur le dév")
+    print(tabla.head(15).to_string())
+    guardar(tabla, f"fallos_PR_{args.grafo}.csv")
+    print("Remplis la colonne causa_manual (lematización, fuera del vocabulario, polisemia, nodo muy conectado, ambigua).")
 
 def etapa_7(grafos, datos, args):
     """TABLEAU FINAL dév + test (evaluacion.tabla). À lancer une seule fois : il évalue le TEST."""
@@ -190,8 +254,23 @@ def etapa_7(grafos, datos, args):
     tabla.to_csv(os.path.join(RES, f"etapa7_tabla_final_{args.grafo}.csv"))
     print(f"\n-> {os.path.join(RES, f'etapa7_tabla_final_{args.grafo}.csv')}")
 
+def etapa_8(grafos, datos, args) : 
+    modelos = construir_modelos2(grafos, datos, args.grafo)
+    tabla = ev.tabla(modelos, datos)
+    print("\n" + tabla.round(3).to_string())
+    
+    # Chemin vers le fichier CSV créé à l'étape 7
+    chemin_fichier = os.path.join(RES, f"etapa7_tabla_final_{args.grafo}.csv")
+    
+    # Ajout des nouvelles lignes à la fin du fichier existant
+    # header=False évite de réécrire les noms de colonnes
+    # index=True (par défaut) conserve l'index si l'étape 7 l'a gardé
+    tabla.to_csv(chemin_fichier, mode='a', header=False)
+    
+    print(f"\n-> Nouvelles lignes ajoutées avec succès dans : {chemin_fichier}")
 
-ETAPAS = {"1": etapa_1, "2": etapa_2, "3": etapa_3, "4": etapa_4, "5": etapa_5, "6": etapa_6, "7": etapa_7}
+
+ETAPAS = {"0": etapa_0, "1": etapa_1, "2": etapa_2, "3": etapa_3, "4": etapa_4, "5": etapa_5, "6": etapa_6, "7": etapa_7, "8" : etapa_8}
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
