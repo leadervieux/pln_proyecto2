@@ -1,0 +1,10 @@
+{
+  "cfg": {
+    "dimensions": 128,
+    "walk_length": 80,
+    "num_walks": 20,
+    "p": 1.0,
+    "q": 1.0
+  },
+  "modo": "suma"
+}
