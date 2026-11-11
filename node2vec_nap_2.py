@@ -26,6 +26,8 @@ from node2vec import Node2Vec
 
 import evaluacion as ev
 
+#import paso_a_paso_2 as ps
+
 
 # ------------------------------------------------------------------ Config
 DIRECTORIO = "./"
@@ -74,12 +76,19 @@ def limpia_lematiza(cadena):
     Si spaCy renvoie un lemme à plusieurs mots (« mole » -> « mo él »), on le coupe en deux,
     comme le fait Léa avec .split(" ")."""
     _, stop = _cargar_nlp()
+    
+    # Suppression de la ponctuation
     for c in string.punctuation:
         cadena = cadena.replace(c, "")
+        
     lemas = []
     for p in cadena.split():
-        if p not in stop:
-            lemas += _lema(p).lower().split()
+        p_lower = p.lower() # On met en minuscule tout de suite
+        
+        # On vérifie dans les stop words en minuscules, puis on lemmatise
+        if p_lower not in stop:
+            lemas += _lema(p_lower).split()
+            
     return lemas
 
 
@@ -210,6 +219,10 @@ def experimentos(G, datos, grafo, weight_key="sim", modo="suma"):
         res = evaluar_dev(crea_modelo(wv, modo), datos)
         filas.append({"cambio": _etiqueta(var), **cfg, "grafo": grafo, "modo": modo, **res})
         print({k: (round(v, 3) if isinstance(v, float) else v) for k, v in filas[-1].items()})
+    wv = entrena_node2vec(G, grafo, weight_key=weight_key, dimensions=64, walk_length=80, num_walks=20, p=1.0, q=1.0)
+    res = evaluar_dev(crea_modelo(wv, modo), datos)
+    filas.append({"cambio": _etiqueta(var), **cfg, "grafo": grafo, "modo": modo, **res})
+    print({k: (round(v, 3) if isinstance(v, float) else v) for k, v in filas[-1].items()})
     return pd.DataFrame(filas)
 
 
@@ -262,4 +275,8 @@ def demo_gradio(modelo, k=5):
 if __name__ == "__main__":
     print(__doc__)
     print("Ce fichier est une bibliothèque. Lance plutôt : python paso_a_paso.py 1")
+    #grafos, datos = ps.cargar()
+    #wv = entrena_node2vec(grafos["asoc"], "asoc", "sim", dimensions=64, walk_length=80, num_walks=30, p=1.0, q=1.0 )
+    #res = evaluar_dev(crea_modelo(wv, "suma"), datos)
+    #print(res)
 
