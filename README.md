@@ -241,6 +241,8 @@ PageRank mantiene en prueba un desempeño muy cercano al de desarrollo (0.424 / 
 
 PageRank personalizado es el mejor modelo de grafos en los tres valores de k también en el conjunto de prueba (p@5 = 0.690 frente a 0.560 de la mejor medida de centralidad, la cercanía). Las medidas de centralidad obtienen en prueba resultados parecidos o algo mayores que en desarrollo (por ejemplo, la cercanía pasa de 0.221 / 0.428 / 0.518 a 0.268 / 0.488 / 0.560), por lo que la ventaja de PageRank se reduce en prueba, aunque se mantiene. Los conceptos del corpus nuevo son distintos de los del corpus de clase, así que esta diferencia puede deberse en parte a los conceptos elegidos; no se probó.
 
+**Nota sobre las dos fuentes de resultados.** Las tablas 6.2 y 6.2b provienen del notebook de Léa, con su propia función de evaluación. La tabla 6.3 proviene del evaluador común del equipo (`evaluacion.py`), que difiere en detalles de implementación (por ejemplo, el criterio para detectar las descripciones que mencionan la palabra objetivo en el conjunto de prueba), por lo que hay diferencias pequeñas entre ambas (por ejemplo, cercanía en desarrollo, p@1: 0.221 frente a 0.225). No se aisló la causa exacta de cada diferencia. Las comparaciones entre modelos se hacen con la tabla 6.3, porque todos se miden con el mismo evaluador.
+
 ### 6.3 Tabla comparativa única (todos los modelos, desarrollo y prueba)
 | Modelo y Ponderación | p@1 (Des.) | p@3 (Des.) | p@5 (Des.) | MRR (Des.) | Cob. (Des.) | p@1 (Prue.) | p@3 (Prue.) | p@5 (Prue.) | MRR (Prue.) | Cob. (Prue.) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
