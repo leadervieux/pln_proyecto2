@@ -138,6 +138,31 @@ def construir_modelos_Lea(grafos) :
         "cc" : m_cc      
     }
 
+def construir_todos_modelos(gafos, datos, grafo) : 
+    mejor = cargar_mejor(grafo)
+    G = grafos[grafo]
+    wv = n2.entrena_node2vec(G, grafo, weight_key="sim", dimensions=64, walk_length=80, num_walks=20, p=1.0, q=1.0)
+    idf = n2.idf_dev(datos) if mejor["modo"] == "idf" else None
+    m_n2v = n2.crea_modelo(wv, mejor["modo"], idf)
+    m_pr = gl.crea_modelo(gl.diccionario_pr, G, alpha=gl.ALPHA_PR)
+    m_cc = gl.crea_modelo(gl.diccionario_cc, G)
+    m_btc = gl.crea_modelo(gl.diccionario_btc, G)
+    m_btc_r = gl.crea_modelo(gl.diccionario_btc_reducido, G)
+    m_dc = gl.crea_modelo(gl.diccionario_dc, G)
+
+    return {
+        "btc": m_btc, 
+        "btc_r": m_btc_r, 
+        "dc" : m_dc,          
+        CLAVES_MODELO["node2vec"]: m_n2v,
+        CLAVES_MODELO["pr"]: m_pr,
+        CLAVES_MODELO["cc"]: m_cc,
+        CLAVES_MODELO["rrf2"]: n2.modelo_rrf([m_n2v, m_pr]),
+        CLAVES_MODELO["rrf3"]: n2.modelo_rrf([m_n2v, m_cc, m_pr]),
+        CLAVES_MODELO["rrfg"]: n2.modelo_rrf([m_cc, m_pr]),
+        "node2vec + BTC + PR" : n2.modelo_rrf([m_n2v, m_btc, m_pr]), 
+    }
+
 
 
 # ------------------------------------------------------------------ étapes
@@ -152,7 +177,7 @@ def etapa_0(grafos, datos, args) :
             print(nombre, {k: round(v, 3) for k, v in filas[-1].items() if k in ("p@1", "p@3", "p@5", "MRR")})
             tabla = pd.DataFrame(filas)
             print("\n" + tabla.to_string())
-    guardar(tabla, f"etapa4_rrf_dev_{args.grafo}.csv")
+    guardar(tabla, f"etapa0_rrf_dev_{args.grafo}.csv")
 
 
 def etapa_1(grafos, datos, args):
@@ -248,29 +273,15 @@ def etapa_7(grafos, datos, args):
     print("avec la config et le graphe définitifs, choisis sur le dév.")
     if input("Écris 'si' pour continuer : ").strip().lower() != "si":
         sys.exit("Annulé.")
-    modelos = construir_modelos(grafos, datos, args.grafo)
+    modelos = construir_todos_modelos(grafos, datos, args.grafo)
     tabla = ev.tabla(modelos, datos)
     print("\n" + tabla.round(3).to_string())
     tabla.to_csv(os.path.join(RES, f"etapa7_tabla_final_{args.grafo}.csv"))
     print(f"\n-> {os.path.join(RES, f'etapa7_tabla_final_{args.grafo}.csv')}")
 
-def etapa_8(grafos, datos, args) : 
-    modelos = construir_modelos2(grafos, datos, args.grafo)
-    tabla = ev.tabla(modelos, datos)
-    print("\n" + tabla.round(3).to_string())
-    
-    # Chemin vers le fichier CSV créé à l'étape 7
-    chemin_fichier = os.path.join(RES, f"etapa7_tabla_final_{args.grafo}.csv")
-    
-    # Ajout des nouvelles lignes à la fin du fichier existant
-    # header=False évite de réécrire les noms de colonnes
-    # index=True (par défaut) conserve l'index si l'étape 7 l'a gardé
-    tabla.to_csv(chemin_fichier, mode='a', header=False)
-    
-    print(f"\n-> Nouvelles lignes ajoutées avec succès dans : {chemin_fichier}")
 
 
-ETAPAS = {"0": etapa_0, "1": etapa_1, "2": etapa_2, "3": etapa_3, "4": etapa_4, "5": etapa_5, "6": etapa_6, "7": etapa_7, "8" : etapa_8}
+ETAPAS = {"0": etapa_0, "1": etapa_1, "2": etapa_2, "3": etapa_3, "4": etapa_4, "5": etapa_5, "6": etapa_6, "7": etapa_7}
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
