@@ -3,7 +3,7 @@ paso_a_paso.py - Expériences de Max (node2vec + fusion RRF), dans l'ordre.
 
 Dossier de travail : NAP.xls, nuevas_desc.csv, corpus/, evaluacion.py, grafos_lea.py, node2vec_nap.py
 
-    python paso_a_paso_2.py                 #Genere les résultat sur les graphes de léa
+    python paso_a_paso_2.py 0               #Genere les résultat sur les graphes de léa
     python paso_a_paso.py 1                 # même config sur les 3 graphes (asoc, frec, tiempo) : quelle force ?
     python paso_a_paso.py 2 --grafo asoc    # une variable à la fois ; enregistre la meilleure config (long)
     python paso_a_paso.py 3 --grafo asoc    # somme / moyenne / IDF avec la meilleure config
